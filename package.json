@@ -3,11 +3,17 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "android": "react-native run-android",
+    "android:android-build-bundle": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res/",
+    "android:android-build-apk-release": "cd android && gradlew assembleRelease",
+
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+
+    "android": "react-native run-android",
+    "android:build": "npm run android:android-build-bundle && npm run android:android-build-apk-release",
+    "android:install-build": "adb install android/app/build/outputs/apk/release/app-release.apk"
   },
   "dependencies": {
     "react": "19.1.0",
