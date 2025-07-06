@@ -5,24 +5,69 @@
  * @format
  */
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { BackHandler, StatusBar, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { PlayerProvider } from './contexts/usePlayer';
+import LinearGradient from 'react-native-linear-gradient';
+import { ThemeProvider, useTheme } from './contexts/useTheme';
+import { createContext, useContext, useEffect, useState } from 'react';
+import HomePage from './pages/HomePage';
+import CategoriesPage from './pages/CategoriesPage';
+import SongsPage from './pages/SongsPage';
+import PlaylistsPage from './pages/PlaylistsPage';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+const pagesContext = createContext<any>(null);
 
-  return (
-    <View style={styles.container}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <Text>Hello world</Text>
-    </View>
-  );
+const pages = {
+  "home": <HomePage />,
+  "categories": <CategoriesPage />,
+  "songs": <SongsPage />,
+  "playlists": <PlaylistsPage />
+} as const
+
+interface pagesProviderUtils {
+  setPage: React.Dispatch<React.SetStateAction<keyof typeof pages>>
+  setBackPressTarget: React.Dispatch<React.SetStateAction<keyof typeof pages | null>>
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
+export const usePages: () => pagesProviderUtils = () => {
+  return useContext(pagesContext);
+}
 
+function App() {
+  // const { background } = useTheme();
+  const [currentPage, setPage] = useState<keyof typeof pages>("home")
+  const [backPressTarget, setBackPressTarget] = useState<keyof typeof pages | null>(null);
+
+  function handleBackPress() {
+    console.log("backpress", backPressTarget)
+    if (backPressTarget !== null) {
+      setPage(backPressTarget)
+      setBackPressTarget(null)
+      return true
+    }
+    return false
+  }
+
+  useEffect(() => {
+    const backEvent = BackHandler.addEventListener('hardwareBackPress', handleBackPress)
+
+    return () => {
+      backEvent.remove()
+    }
+  }, [backPressTarget])
+
+  return (
+    <ThemeProvider>
+      <SafeAreaProvider>
+        <PlayerProvider>
+          <pagesContext.Provider
+            value={{ setPage, setBackPressTarget }}
+            children={pages[currentPage]}
+          />
+        </PlayerProvider>
+      </SafeAreaProvider>
+    </ThemeProvider>
+  );
+}
 export default App;

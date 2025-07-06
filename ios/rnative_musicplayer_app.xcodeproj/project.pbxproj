@@ -11,6 +11,12 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		94DB8ACE9F8048EDB9412100 /* ComicNeueBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 32EB5E72BCFE45568C8B9BB9 /* ComicNeueBold.ttf */; };
+		C1DDA53122864698A31B2B12 /* ComicNeueBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C8B18DA3BE894DB28A7F2E3A /* ComicNeueBoldItalic.ttf */; };
+		8EDADAB76F7642748F6CA73B /* ComicNeueItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A4AB64B75B6C4DB2A9D122EC /* ComicNeueItalic.ttf */; };
+		510F27F914644AB19BE9B612 /* ComicNeueLight.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 69E8495B9E294FE289052DB4 /* ComicNeueLight.ttf */; };
+		8C6090B33D714709B71B7D20 /* ComicNeueLightItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 9FFDFA1861904EABBD51FDCB /* ComicNeueLightItalic.ttf */; };
+		6665223735754408AC3EBCB7 /* ComicNeueRegular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B912C6CB9382498F8C688870 /* ComicNeueRegular.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -35,6 +41,12 @@
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = rnative_musicplayer_app/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = rnative_musicplayer_app/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		32EB5E72BCFE45568C8B9BB9 /* ComicNeueBold.ttf */ = {isa = PBXFileReference; name = "ComicNeueBold.ttf"; path = "../src/assets/fonts/ComicNeueBold.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		C8B18DA3BE894DB28A7F2E3A /* ComicNeueBoldItalic.ttf */ = {isa = PBXFileReference; name = "ComicNeueBoldItalic.ttf"; path = "../src/assets/fonts/ComicNeueBoldItalic.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		A4AB64B75B6C4DB2A9D122EC /* ComicNeueItalic.ttf */ = {isa = PBXFileReference; name = "ComicNeueItalic.ttf"; path = "../src/assets/fonts/ComicNeueItalic.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		69E8495B9E294FE289052DB4 /* ComicNeueLight.ttf */ = {isa = PBXFileReference; name = "ComicNeueLight.ttf"; path = "../src/assets/fonts/ComicNeueLight.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		9FFDFA1861904EABBD51FDCB /* ComicNeueLightItalic.ttf */ = {isa = PBXFileReference; name = "ComicNeueLightItalic.ttf"; path = "../src/assets/fonts/ComicNeueLightItalic.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		B912C6CB9382498F8C688870 /* ComicNeueRegular.ttf */ = {isa = PBXFileReference; name = "ComicNeueRegular.ttf"; path = "../src/assets/fonts/ComicNeueRegular.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -93,6 +105,7 @@
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				BBD78D7AC51CEA395F1C20DB /* Pods */,
+				24EE2F02C0674DFDA46724BE /* Resources */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -115,6 +128,20 @@
 			);
 			path = Pods;
 			sourceTree = "<group>";
+		};
+		24EE2F02C0674DFDA46724BE /* Resources */ = {
+			isa = "PBXGroup";
+			children = (
+				32EB5E72BCFE45568C8B9BB9 /* ComicNeueBold.ttf */,
+				C8B18DA3BE894DB28A7F2E3A /* ComicNeueBoldItalic.ttf */,
+				A4AB64B75B6C4DB2A9D122EC /* ComicNeueItalic.ttf */,
+				69E8495B9E294FE289052DB4 /* ComicNeueLight.ttf */,
+				9FFDFA1861904EABBD51FDCB /* ComicNeueLightItalic.ttf */,
+				B912C6CB9382498F8C688870 /* ComicNeueRegular.ttf */,
+			);
+			name = Resources;
+			sourceTree = "<group>";
+			path = "";
 		};
 /* End PBXGroup section */
 
@@ -185,6 +212,12 @@
 			files = (
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
+				94DB8ACE9F8048EDB9412100 /* ComicNeueBold.ttf in Resources */,
+				C1DDA53122864698A31B2B12 /* ComicNeueBoldItalic.ttf in Resources */,
+				8EDADAB76F7642748F6CA73B /* ComicNeueItalic.ttf in Resources */,
+				510F27F914644AB19BE9B612 /* ComicNeueLight.ttf in Resources */,
+				8C6090B33D714709B71B7D20 /* ComicNeueLightItalic.ttf in Resources */,
+				6665223735754408AC3EBCB7 /* ComicNeueRegular.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
