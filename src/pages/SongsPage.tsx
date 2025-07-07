@@ -1,54 +1,30 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { View, Text, Pressable, ScrollView, Image } from 'react-native'
-import { ReadDirItem, readDir } from 'react-native-fs';
-import { hasStoragePerms } from '../utilities';
-import { AudioPro } from 'react-native-audio-pro';
+import { getComicNueueFont } from '../utilities/basic';
 import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../contexts/useTheme';
+import SongTile from '../components/SongTile';
+import { usePages } from '../App';
+import { usePlayer } from '../contexts/usePlayer';
 
 function SongsPage() {
-	const { background, onBackground, surface, secondary } = useTheme();
+	const { allSongs, playSong } = usePlayer();
+	const { background, onBackground, surface, secondary, onSecondary } = useTheme();
+	const { setPage, setBackPressTarget } = usePages();
 
-	const [files, setFiles] = useState<ReadDirItem[]>([]);
-	async function readDirectory() {
-		if (await hasStoragePerms() == false) return
-		try {
-			const files: ReadDirItem[] = []
-			const dir = await readDir("/storage/emulated/0/Music")
-			dir.forEach(item => {
-				if (item.isFile()) files.push(item)
-			})
-			setFiles(files)
-		} catch (error) {
-			console.error(error)
-		}
+	// const [files, setFiles] = useState<song[]>([]);
+	// async function readDirectory() {
+	// 	const files: song[] = await getAllSongs()
+	// 	setFiles(files)
+	// }
+
+	const [songPage, setSongPage] = useState<number>(1);
+
+	const TextStyle = {
+		fontSize: 32,
+		fontFamily: getComicNueueFont("bold"),
+		color: onBackground,
 	}
-
-	async function onClick(path: string, fileName: string) {
-		try {
-			const [name, ext] = fileName
-				.replace("_", " ")
-				.replace(/([a-z0-9])([A-Z])/g, (_, a, b) => `${a} ${b}`)
-				.split(".")
-
-			// const fileContent = await readFile(path, 'base64');
-
-			console.log("filepath", `file://${path}`,)
-			AudioPro.play({
-				id: path,
-				artwork: require("../assets/images/gradient.png"),
-				// artwork: "https://angeldav.net/images/boxly.png",
-				url: `file://${path}`,
-				title: name,
-			})
-		} catch (error) {
-			console.warn("err", error)
-		}
-	}
-
-	useEffect(() => {
-		readDirectory()
-	}, [])
 
 	return (
 		<LinearGradient
@@ -57,34 +33,88 @@ function SongsPage() {
 			colors={[surface, background]}
 			style={{ height: 64, flex: 1 }}
 		>
-			<ScrollView style={{ paddingVertical: 64, paddingHorizontal: 16 }}>
-				{files.map(file => {
-					const [name, ext] = file.name
-						.replace("_", " ")
-						.replace(/([a-z0-9])([A-Z])/g, (_, a, b) => `${a} ${b}`)
-						.split(".")
-
-					return (
+			<ScrollView style={{ paddingHorizontal: 16, flex: 1 }}>
+				<View style={{ paddingTop: 64, paddingBottom: 128, gap: 8, flex: 1 }}>
+					<View
+						style={{
+							marginBottom: 32,
+							flexDirection: 'row', alignItems: "center", gap: 15,
+							justifyContent: "space-between",
+							paddingRight: 16
+						}}
+					>
 						<Pressable
-							key={file.path}
-							onPress={() => onClick(file.path, file.name)}
-							style={{
-								paddingVertical: 10, paddingHorizontal: 14, backgroundColor: secondary,
-								marginBottom: 5, flexDirection: "row", borderRadius: 16, alignItems: "center",
-								gap: 16
+							onPress={() => {
+								setBackPressTarget(null)
+								setPage("home")
 							}}
-						>
-							<Image
-								style={{ width: 40, height: undefined, aspectRatio: 1 }}
-								source={require("../assets/images/note_2.png")}
+							children={<Image
+								style={{ height: 64, objectFit: "contain", aspectRatio: 1, tintColor: onBackground }}
+								source={require("../assets/images/arrow_left.png")}
+							/>}
+						/>
+
+						<Text
+							style={{
+								fontSize: 35,
+								fontFamily: getComicNueueFont("bold"),
+								color: onBackground
+							}}
+							children="Song library"
+						/>
+					</View>
+					{allSongs && allSongs.slice(
+						(songPage - 1) * 10,
+						(songPage) * 10
+					).map(file => {
+						if (file.id) return (
+							<SongTile
+								key={file.id}
+								onPress={() => file.id && playSong(file.id)}
+								name={file.name}
+								maxNameLength={40}
 							/>
-							<Text style={{ color: "white", fontWeight: "bold", flexWrap: 'wrap' }}>{name}</Text>
-						</Pressable>
-					)
-				})}
+						)
+					})}
+				</View>
 			</ScrollView>
+			<LinearGradient
+				colors={["transparent", background]}
+				style={{
+					position: "absolute", bottom: 0, width: "100%",
+					flexDirection: "row", justifyContent: "space-evenly", alignItems: "center",
+					gap: 16, paddingVertical: 32
+				}}
+			>
+				<Pressable
+					onPress={() => setSongPage(current => current > 1 ? current - 1 : current)}
+					children={<Image
+						style={{ height: 56, objectFit: "contain", aspectRatio: 1, tintColor: onBackground }}
+						source={require("../assets/images/arrow_left.png")}
+					/>}
+				/>
+				<Text
+					style={{
+						...TextStyle,
+						paddingHorizontal: 16,
+						paddingVertical: 8,
+						backgroundColor: secondary,
+						borderRadius: 16
+					}}
+					children={`${songPage} / ${Math.ceil(allSongs.length / 10)}`}
+				/>
+				<Pressable
+					onPress={() => setSongPage(current => current < Math.ceil(allSongs.length / 10) ? current + 1 : current)}
+					children={<Image
+						style={{ height: 56, objectFit: "contain", aspectRatio: 1, tintColor: onBackground }}
+						source={require("../assets/images/arrow_right.png")}
+					/>}
+				/>
+			</LinearGradient>
 		</LinearGradient>
 	)
 }
+
+
 
 export default SongsPage

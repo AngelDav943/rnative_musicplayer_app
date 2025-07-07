@@ -1,7 +1,5 @@
-import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { createContext, ReactNode, useContext } from "react";
 import { StatusBar, useColorScheme } from "react-native";
-import { AudioPro, AudioProContentType } from "react-native-audio-pro";
-import { ReadDirItem } from "react-native-fs";
 
 const themeContext = createContext<any>(null);
 
@@ -32,9 +30,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 		secondary: " rgba(135, 122, 219, 1)",
 		primary: " rgba(117, 172, 255, 1)",
 		error: " rgba(187, 53, 53, 1)",
-		onBackground: " rgb(246, 248, 252)",
-		onSurface: " rgba(77, 95, 255, 1)",
-		onSecondary: " rgba(177, 193, 225, 1)",
+		onBackground: " rgb(12, 13, 14)",
+		onSurface: " hsl(234, 100.00%, 65.10%)",
+		onSecondary: " rgb(246, 248, 252)",
 		onPrimary: " rgba(201, 214, 250, 1)",
 		onError: " rgba(255, 207, 207, 1)",
 		inversePrimary: " rgba(255, 216, 110, 1))",

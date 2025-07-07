@@ -1,5 +1,11 @@
 import { PermissionsAndroid, Platform } from "react-native";
 
+export function getNameAndExtension(fileName: string) {
+	const separation = fileName.split(/(.+)\.(.+)/g)
+
+	return [separation[1], separation[2]]
+}
+
 export function mergeGroupsIntersection(groups: Record<string, any[]>, words: string[]): any[] {
 	if (words.length === 0) return [];
 

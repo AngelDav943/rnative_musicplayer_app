@@ -15,6 +15,7 @@ import CategoriesPage from './pages/CategoriesPage';
 import SongsPage from './pages/SongsPage';
 import PlaylistsPage from './pages/PlaylistsPage';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { DatabaseProvider } from './contexts/useDatabase';
 
 const pagesContext = createContext<any>(null);
 
@@ -60,12 +61,14 @@ function App() {
   return (
     <ThemeProvider>
       <SafeAreaProvider>
-        <PlayerProvider>
-          <pagesContext.Provider
-            value={{ setPage, setBackPressTarget }}
-            children={pages[currentPage]}
-          />
-        </PlayerProvider>
+        <DatabaseProvider>
+          <PlayerProvider>
+            <pagesContext.Provider
+              value={{ setPage, setBackPressTarget }}
+              children={pages[currentPage]}
+            />
+          </PlayerProvider>
+        </DatabaseProvider>
       </SafeAreaProvider>
     </ThemeProvider>
   );

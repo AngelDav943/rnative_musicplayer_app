@@ -1,5 +1,6 @@
 import { ImageSourcePropType, DimensionValue, View, Image, Text, Pressable, GestureResponderEvent } from "react-native"
-import { getComicNueueFont } from "../utilities"
+import { getComicNueueFont } from "../utilities/basic"
+import LinearGradient from "react-native-linear-gradient"
 
 export function BaseButtonFolder({
 	width = 300,
@@ -34,6 +35,14 @@ export function BaseButtonFolder({
 				width: iconSize, height: undefined, tintColor: "white",
 				top: iconTop, right: iconRight, left: iconLeft,
 				resizeMode: "cover", aspectRatio: 1, opacity: iconOpacity
+			}}
+		/>
+		<LinearGradient
+			colors={["transparent", "rgba(0, 0, 0, 0.4)"]}
+			style={{
+				position: "absolute",
+				width: "100%",
+				height: "100%"
 			}}
 		/>
 		<View

@@ -1,15 +1,36 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { DimensionValue, Image, ImageSourcePropType, Pressable, ScrollView, Text, View } from 'react-native'
 import LinearGradient from 'react-native-linear-gradient'
 import { useTheme } from '../contexts/useTheme'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { getComicNueueFont } from '../utilities';
+import { getComicNueueFont, getNameAndExtension } from '../utilities/basic';
 import ButtonFolder, { BaseButtonFolder } from '../components/ButtonFolder';
 import { usePages } from '../App';
+import SongTile from '../components/SongTile';
+import { DB_song, song } from '../types/song';
+import { useDatabase } from '../contexts/useDatabase';
 
 function HomePage() {
-	const { background, onBackground, surface, onSurface, secondary } = useTheme();
+	const { background, onBackground, surface, onSurface, secondary, onSecondary } = useTheme();
 	const { setPage, setBackPressTarget } = usePages();
+	const { getDB } = useDatabase();
+
+	const [recentlyPlayed, setRecently] = useState<song[]>();
+
+	async function getRecentlyPlayed() {
+		const db = await getDB();
+
+		const [{ rows: results }] = await db.executeSql(
+			"SELECT songs.* FROM songs JOIN recent_songs ON songs.id = recent_songs.song_id ORDER BY recent_songs.id DESC"
+		)
+		const recent = results.raw() as DB_song[]
+
+		setRecently(recent)
+	}
+
+	useEffect(() => {
+		getRecentlyPlayed()
+	}, [])
 
 	return (
 		<LinearGradient
@@ -41,7 +62,7 @@ function HomePage() {
 								children="Playlists"
 							/>
 						</View>
-						<ScrollView horizontal={true} style={{ paddingBottom: 32 }}>
+						<ScrollView horizontal={true} style={{ paddingBottom: 15 }}>
 							<View style={{ paddingHorizontal: 20, flexDirection: "row", gap: 10, alignItems: "center" }}>
 								<ButtonFolder width={210} color='#094813' />
 								<ButtonFolder width={210} variation={3} color='#318fff' />
@@ -59,36 +80,67 @@ function HomePage() {
 							</View>
 						</ScrollView>
 					</View>
-					<Text>
-						Lorem ipsum dolor sit, amet consectetur adipisicing elit. Natus sunt quidem laudantium debitis,
-						quas illum accusantium sit nostrum praesentium et vero modi dolorum illo quibusdam libero saepe inventore similique deserunt!
-					</Text>
-					<Text>
-						Lorem ipsum dolor sit, amet consectetur adipisicing elit. Natus sunt quidem laudantium debitis,
-						quas illum accusantium sit nostrum praesentium et vero modi dolorum illo quibusdam libero saepe inventore similique deserunt!
-					</Text>
-					<Text>
-						Lorem ipsum dolor sit, amet consectetur adipisicing elit. Natus sunt quidem laudantium debitis,
-						quas illum accusantium sit nostrum praesentium et vero modi dolorum illo quibusdam libero saepe inventore similique deserunt!
-					</Text>
-					<Text>
-						Lorem ipsum dolor sit, amet consectetur adipisicing elit. Natus sunt quidem laudantium debitis,
-						quas illum accusantium sit nostrum praesentium et vero modi dolorum illo quibusdam libero saepe inventore similique deserunt!
-					</Text>
-					<Pressable
-						onPress={() => {
-							setBackPressTarget("home")
-							setPage("songs")
-						}}
-						style={{
-							backgroundColor: secondary,
-							padding: 16,
-							borderRadius: 16,
-							margin: 16
-						}}
-					>
-						<Text>Open songs</Text>
-					</Pressable>
+					<View>
+						<View
+							style={{
+								paddingVertical: 10, paddingHorizontal: 20,
+								flexDirection: 'row', alignItems: "center", gap: 15
+							}}
+						>
+							<Image
+								style={{ width: 70, objectFit: "contain", aspectRatio: 1, tintColor: onSurface }}
+								source={require("../assets/images/note_1.png")}
+							/>
+							<Text
+								style={{
+									fontSize: 35,
+									fontFamily: getComicNueueFont("bold"),
+									color: onSurface
+								}}
+								children="Songs"
+							/>
+						</View>
+						<View style={{
+							paddingHorizontal: 20,
+							flexDirection: "row", flexWrap: "wrap", gap: 9, rowGap: 8
+						}}>
+							{recentlyPlayed && recentlyPlayed.map((file, index) => {
+
+								return <SongTile
+									key={index}
+									name={file.name}
+								/>
+							})}
+						</View>
+						<Pressable
+							onPress={() => {
+								setBackPressTarget("home")
+								setPage("songs")
+							}}
+							style={{
+								marginTop: 10, marginHorizontal: 20,
+								paddingVertical: 12, paddingHorizontal: 16,
+								flexDirection: 'row', alignItems: "center", gap: 15,
+								borderRadius: 16,
+								backgroundColor: secondary,
+							}}
+						>
+							<Image
+								style={{ width: 40, objectFit: "contain", aspectRatio: 1, tintColor: onSecondary }}
+								source={require("../assets/images/note_1.png")}
+							/>
+							<Text
+								style={{
+									fontSize: 30,
+									fontFamily: getComicNueueFont("bold"),
+									color: onSecondary
+								}}
+								children="Song library >"
+							/>
+						</Pressable>
+					</View>
+
+
 
 				</SafeAreaView>
 			</ScrollView>

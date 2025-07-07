@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Text, View } from 'react-native'
 import { ReadDirItem, readDir } from 'react-native-fs';
-import { hasStoragePerms, mergeGroupsIntersection } from '../utilities';
+import { getNameAndExtension, hasStoragePerms, mergeGroupsIntersection } from '../utilities/basic';
 
 
 function CategoriesPage() {
@@ -20,7 +20,7 @@ function CategoriesPage() {
 
 			const groups: Record<string, ReadDirItem[]> = {}
 			files.forEach(file => {
-				const [name, ext] = file.name.split(".")
+				const [name, ext] = getNameAndExtension(file.name)
 				const words = name.split(/[\s\-_\.]+/)
 				for (const word of words) {
 					const cleanedWord = word.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
