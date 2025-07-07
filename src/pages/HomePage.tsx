@@ -9,10 +9,13 @@ import { usePages } from '../App';
 import SongTile from '../components/SongTile';
 import { DB_song, song } from '../types/song';
 import { useDatabase } from '../contexts/useDatabase';
+import HomeHeader from '../components/HomeHeader';
+import { usePlayer } from '../contexts/usePlayer';
 
 function HomePage() {
-	const { background, onBackground, surface, onSurface, secondary, onSecondary } = useTheme();
+	const { background, onBackground, surface, onSurface, secondary, onSecondary, primary } = useTheme();
 	const { setPage, setBackPressTarget } = usePages();
+	const { playSong } = usePlayer();
 	const { getDB } = useDatabase();
 
 	const [recentlyPlayed, setRecently] = useState<song[]>();
@@ -24,8 +27,7 @@ function HomePage() {
 			"SELECT songs.* FROM songs JOIN recent_songs ON songs.id = recent_songs.song_id ORDER BY recent_songs.id DESC"
 		)
 		const recent = results.raw() as DB_song[]
-
-		setRecently(recent)
+		setRecently(recent.map(item => ({ ...item, duration: parseInt(item.duration || "0") })))
 	}
 
 	useEffect(() => {
@@ -41,27 +43,8 @@ function HomePage() {
 		>
 			<ScrollView>
 				<SafeAreaView style={{ flex: 1 }}>
-
 					<View>
-						<View
-							style={{
-								paddingVertical: 10, paddingHorizontal: 20,
-								flexDirection: 'row', alignItems: "center", gap: 15
-							}}
-						>
-							<Image
-								style={{ width: 80, objectFit: "contain", aspectRatio: 1, tintColor: onSurface }}
-								source={require("../assets/images/note_queue.png")}
-							/>
-							<Text
-								style={{
-									fontSize: 35,
-									fontFamily: getComicNueueFont("bold"),
-									color: onSurface
-								}}
-								children="Playlists"
-							/>
-						</View>
+						<HomeHeader icon={require("../assets/images/note_queue.png")} label='Playlists' />
 						<ScrollView horizontal={true} style={{ paddingBottom: 15 }}>
 							<View style={{ paddingHorizontal: 20, flexDirection: "row", gap: 10, alignItems: "center" }}>
 								<ButtonFolder width={210} color='#094813' />
@@ -81,25 +64,7 @@ function HomePage() {
 						</ScrollView>
 					</View>
 					<View>
-						<View
-							style={{
-								paddingVertical: 10, paddingHorizontal: 20,
-								flexDirection: 'row', alignItems: "center", gap: 15
-							}}
-						>
-							<Image
-								style={{ width: 70, objectFit: "contain", aspectRatio: 1, tintColor: onSurface }}
-								source={require("../assets/images/note_1.png")}
-							/>
-							<Text
-								style={{
-									fontSize: 35,
-									fontFamily: getComicNueueFont("bold"),
-									color: onSurface
-								}}
-								children="Songs"
-							/>
-						</View>
+						<HomeHeader icon={require("../assets/images/note_1.png")} label='Recently played' />
 						<View style={{
 							paddingHorizontal: 20,
 							flexDirection: "row", flexWrap: "wrap", gap: 9, rowGap: 8
@@ -109,6 +74,12 @@ function HomePage() {
 								return <SongTile
 									key={index}
 									name={file.name}
+									onPress={() => {
+										if (file.id == undefined) return;
+										playSong(file.id)
+										getRecentlyPlayed()
+									}}
+									variant={(file.id || index) % 2}
 								/>
 							})}
 						</View>
@@ -139,9 +110,6 @@ function HomePage() {
 							/>
 						</Pressable>
 					</View>
-
-
-
 				</SafeAreaView>
 			</ScrollView>
 		</LinearGradient>

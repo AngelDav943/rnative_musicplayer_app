@@ -1,4 +1,5 @@
 import { PermissionsAndroid, Platform } from "react-native";
+import AudioMetadata from "../types/NativeModules";
 
 export function getNameAndExtension(fileName: string) {
 	const separation = fileName.split(/(.+)\.(.+)/g)
@@ -51,4 +52,24 @@ export function getComicNueueFont(type: keyof typeof ComicNeueFonts, italic: boo
 	}
 
 	return `${ComicNeueFonts[type]}${italic ? "Italic" : ""}`
+}
+
+export function formatTime(milliseconds: number) {
+	const date = new Date(milliseconds)
+
+	const time = `${date.getMinutes().toString().padStart(2, "0")
+		}:${date.getSeconds().toString().padStart(2, "0")
+		}`
+
+	return time;
+}
+
+export async function getSongDuration(path: string) {
+	try {
+		const duration = await AudioMetadata.getDuration(path)
+		return duration
+	} catch (error) {
+		console.log("Error while reading metadata, message:", error)
+	}
+	return 0
 }

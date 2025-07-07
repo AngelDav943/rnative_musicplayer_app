@@ -1,19 +1,22 @@
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import { AudioPro, AudioProContentType } from "react-native-audio-pro";
-import { exists, readDir, ReadDirItem } from "react-native-fs";
-import { databaseInit, getDatabase } from "../utilities/database";
-import { getNameAndExtension, hasStoragePerms } from "../utilities/basic";
+import { AudioPro, AudioProContentType, AudioProEventType, useAudioPro } from "react-native-audio-pro";
+import { databaseInit } from "../utilities/database";
+import { hasStoragePerms } from "../utilities/basic";
 import { DB_song, song } from "../types/song";
 import { setting } from "../types/settings";
-import { ResultSet, SQLiteDatabase } from "react-native-sqlite-storage";
 import { scanSongFolder, scanSongDB } from "../utilities/songDatabase";
 import { useDatabase } from "./useDatabase";
+import { Animated, Easing, useAnimatedValue, View } from "react-native";
+import TabWindow from "../components/TabWindow";
+import { useTheme } from "./useTheme";
+import PlayerMinimized from "../components/PlayerMinimized";
+import PlayerMaximized from "../components/PlayerMaximized";
 
 const playerContext = createContext<any>(null);
 
 interface ProviderUtils {
-	songPosition: number | null
-	songDuration: number | null
+	position: number | null
+	duration: number | null
 	allSongs: song[]
 	playSong: (songID: number) => void
 }
@@ -23,19 +26,21 @@ export const usePlayer: () => ProviderUtils = () => {
 }
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
+	const { primary } = useTheme();
 	const { getDB } = useDatabase();
 
-	AudioPro.configure({
-		contentType: AudioProContentType.MUSIC,
-	});
+	const { position, duration } = useAudioPro();
 
-	const [songPosition, setSongPosition] = useState<number | null>(null);
-	const [songDuration, setSongDuration] = useState<number | null>(null);
-
+	const [currentSong, setCurrentSong] = useState<song | null>(null);
 	const [queue, setQueue] = useState([]);
 	const [currentQueuePosition, setQueuePosition] = useState<number | null>(null);
 
 	const [allSongs, setAllSongs] = useState<song[]>([]);
+	const [loading, setLoading] = useState<boolean>(true);
+
+	const [minimizedPlayer, setMinimizedPlayer] = useState<boolean>(true);
+
+	const animatedProgress = useAnimatedValue(0);
 
 	async function getAllSongs() {
 		let files: song[] = []
@@ -44,6 +49,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 		const database = await getDB()
 
 		try {
+			setLoading(true)
 			const [{ rows: data }] = await database.executeSql("SELECT COUNT(*) AS count FROM songs")
 			const { count } = data.item(0) as { count: number }
 
@@ -54,19 +60,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 				const LastChecked = last_record.item(0) as setting
 
 				if (LastChecked == undefined || Date.now() - new Date(LastChecked.value).getTime() > 86400000 * 2) {
-					const createSetting = await database.executeSql(
-						"INSERT OR REPLACE INTO settings(key, value) VALUES(?, ?)",
-						["songs.lastchecked", new Date().toISOString()]
-					)
 					scanSongDB(database)
 				}
 
 				const allSongs = (await database.executeSql("SELECT * FROM songs"))[0].rows.raw() as DB_song[]
 				allSongs.forEach(item => {
-					files.push({ id: item.id, name: item.name, path: item.path })
+					files.push({ id: item.id, name: item.name, path: item.path, duration: parseInt(item.duration || "0") })
 				})
 			}
 			console.log("SONGFILES:", files)
+			setLoading(false)
 			return files
 		} catch (error) {
 			console.error(error)
@@ -91,6 +94,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 				url: `file://${song.path}`,
 				title: song.name,
 			})
+			animatedProgress.setValue(0);
+			setCurrentSong(song)
 		} catch (error) {
 			console.warn("err", error)
 		}
@@ -107,7 +112,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 							const toDelete = totalRows - 6;
 							tx.executeSql(
 								`DELETE FROM recent_songs WHERE id IN ( SELECT id FROM recent_songs ORDER BY id ASC LIMIT ? )`,
-								[toDelete], () => {},
+								[toDelete], () => { },
 								(_, err) => {
 									console.error("Error deleting old rows:", err);
 									return false;
@@ -125,40 +130,86 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 	}
 
 	const exportUtils: ProviderUtils = {
-		songPosition, songDuration, allSongs, playSong
+		position, duration, allSongs, playSong
 	}
 
 	async function init() {
 		console.log("init")
-		await databaseInit();
-		setAllSongs(await getAllSongs());
-	}
 
+		AudioPro.configure({
+			contentType: AudioProContentType.MUSIC,
+		});
+
+		await databaseInit();
+		const allFetchedSongs = await getAllSongs()
+		setAllSongs(allFetchedSongs);
+
+		// Check for already playing songs
+		const playingTrack = AudioPro.getPlayingTrack()
+		if (playingTrack) {
+			const song = allFetchedSongs.find(item => item.id == parseInt(playingTrack.id));
+			if (song) {
+				setCurrentSong(song)
+			}
+		}
+	}
 	useEffect(() => {
 		init()
+	}, [])
 
-		const listener = AudioPro.addEventListener((event) => {
-			if (event.type == "PROGRESS" && event.payload) {
-				if (event.payload.position && songPosition != event.payload.position) {
-					setSongPosition(event.payload.position)
-				}
-
-				if (event.payload.duration && songDuration != event.payload.duration) {
-					setSongDuration(event.payload.duration)
-				}
-				return;
-			}
+	useEffect(() => {
+		const listener = AudioPro.addEventListener(async (event) => {
 			console.log("Sound event!!", event)
+			if (event.track !== null && currentSong == null) {
+				const song = allSongs.find(item => item.id == parseInt(event.track!.id));
+				if (song) {
+					setCurrentSong(song)
+				}
+			}
+
+			if (event.payload && event.payload.position && event.payload.duration) {
+				if (event.type == AudioProEventType.SEEK_COMPLETE) {
+					animatedProgress.setValue(event.payload.position / event.payload.duration)
+					return;
+				}
+
+				if (event.type == AudioProEventType.PROGRESS) {
+					Animated.timing(animatedProgress, {
+						toValue: event.payload.position / event.payload.duration,
+						duration: 1100,
+						useNativeDriver: false,
+						easing: Easing.linear
+					}).start()
+					return;
+				}
+			}
+
+			if (event.type == AudioProEventType.TRACK_ENDED) {
+				setCurrentSong(null)
+			}
+
 		})
 
 		return () => {
 			listener.remove()
 		}
-	}, [])
+	}, [loading])
 
 	return (
 		<playerContext.Provider value={{ ...exportUtils }}>
-			{children}
+			{loading
+				? <View>
+
+				</View>
+				: <>
+					{children}
+					<TabWindow
+						minimizedState={[minimizedPlayer, setMinimizedPlayer]}
+						hiddenState={currentSong == null}
+						minimizedChildren={<PlayerMinimized animatedProgress={animatedProgress} currentSong={currentSong} />}
+						children={<PlayerMaximized animatedProgress={animatedProgress} currentSong={currentSong} setMinimized={setMinimizedPlayer} />}
+					/>
+				</>}
 		</playerContext.Provider>
 	)
 }

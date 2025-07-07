@@ -19,6 +19,7 @@
     ]
   },
   "dependencies": {
+    "music-metadata": "^11.6.0",
     "react": "19.1.0",
     "react-native": "0.80.1",
     "react-native-audio-pro": "^9.9.1",

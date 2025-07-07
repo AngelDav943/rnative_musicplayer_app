@@ -62,12 +62,11 @@ function App() {
     <ThemeProvider>
       <SafeAreaProvider>
         <DatabaseProvider>
-          <PlayerProvider>
-            <pagesContext.Provider
-              value={{ setPage, setBackPressTarget }}
-              children={pages[currentPage]}
-            />
-          </PlayerProvider>
+          <pagesContext.Provider value={{ setPage, setBackPressTarget }}>
+            <PlayerProvider>
+              {pages[currentPage]}
+            </PlayerProvider>
+          </pagesContext.Provider>
         </DatabaseProvider>
       </SafeAreaProvider>
     </ThemeProvider>

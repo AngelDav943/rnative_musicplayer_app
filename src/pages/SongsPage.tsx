@@ -12,12 +12,6 @@ function SongsPage() {
 	const { background, onBackground, surface, secondary, onSecondary } = useTheme();
 	const { setPage, setBackPressTarget } = usePages();
 
-	// const [files, setFiles] = useState<song[]>([]);
-	// async function readDirectory() {
-	// 	const files: song[] = await getAllSongs()
-	// 	setFiles(files)
-	// }
-
 	const [songPage, setSongPage] = useState<number>(1);
 
 	const TextStyle = {
@@ -27,11 +21,8 @@ function SongsPage() {
 	}
 
 	return (
-		<LinearGradient
-			start={{ x: 0.0, y: 0.25 }}
-			end={{ x: 0, y: 0.75 }}
-			colors={[surface, background]}
-			style={{ height: 64, flex: 1 }}
+		<View
+			style={{ backgroundColor: background, height: 64, flex: 1 }}
 		>
 			<ScrollView style={{ paddingHorizontal: 16, flex: 1 }}>
 				<View style={{ paddingTop: 64, paddingBottom: 128, gap: 8, flex: 1 }}>
@@ -71,6 +62,7 @@ function SongsPage() {
 							<SongTile
 								key={file.id}
 								onPress={() => file.id && playSong(file.id)}
+								variant={(file.id + (songPage % 3)) % 2}
 								name={file.name}
 								maxNameLength={40}
 							/>
@@ -83,11 +75,12 @@ function SongsPage() {
 				style={{
 					position: "absolute", bottom: 0, width: "100%",
 					flexDirection: "row", justifyContent: "space-evenly", alignItems: "center",
-					gap: 16, paddingVertical: 32
+					gap: 16, paddingVertical: 16
 				}}
 			>
 				<Pressable
 					onPress={() => setSongPage(current => current > 1 ? current - 1 : current)}
+					style={{ padding: 16, flex: 1, alignItems: "center" }}
 					children={<Image
 						style={{ height: 56, objectFit: "contain", aspectRatio: 1, tintColor: onBackground }}
 						source={require("../assets/images/arrow_left.png")}
@@ -98,20 +91,21 @@ function SongsPage() {
 						...TextStyle,
 						paddingHorizontal: 16,
 						paddingVertical: 8,
-						backgroundColor: secondary,
+						backgroundColor: surface,
 						borderRadius: 16
 					}}
 					children={`${songPage} / ${Math.ceil(allSongs.length / 10)}`}
 				/>
 				<Pressable
 					onPress={() => setSongPage(current => current < Math.ceil(allSongs.length / 10) ? current + 1 : current)}
+					style={{ padding: 16, flex: 1, alignItems: "center" }}
 					children={<Image
 						style={{ height: 56, objectFit: "contain", aspectRatio: 1, tintColor: onBackground }}
 						source={require("../assets/images/arrow_right.png")}
 					/>}
 				/>
 			</LinearGradient>
-		</LinearGradient>
+		</View>
 	)
 }
 

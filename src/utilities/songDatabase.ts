@@ -1,7 +1,7 @@
 import { ReadDirItem, exists, readDir } from "react-native-fs"
 import { ResultSet, SQLiteDatabase } from "react-native-sqlite-storage"
 import { DB_song, song } from "../types/song"
-import { getNameAndExtension } from "../utilities/basic"
+import { getNameAndExtension, getSongDuration } from "../utilities/basic"
 
 export async function readFolder() {
 	const fileList: ReadDirItem[] = []
@@ -21,7 +21,9 @@ export async function readFolder() {
 export async function scanSongFolder(db: SQLiteDatabase) {
 	const files: song[] = []
 	const dir = await readFolder()
-	const promises: Promise<[ResultSet]>[] = []
+
+	// const durationPromises: Promise<number>[] = []
+	const promises: Promise<song>[] = []
 	dir.forEach(item => {
 		const [name, ext] = getNameAndExtension(item.name
 			.replace("_", " ")
@@ -32,22 +34,26 @@ export async function scanSongFolder(db: SQLiteDatabase) {
 			path: item.path
 		})
 
-		promises.push(
-			db.executeSql("INSERT INTO songs (path, name) VALUES (?, ?)", [item.path, name])
-		)
+		promises.push(new Promise(async (resolve) => {
+			const duration = await getSongDuration(item.path)
+			const dbItem = await db.executeSql("INSERT INTO songs (path, name, duration) VALUES (?, ?, ?)", [item.path, name, duration])
+
+			resolve({
+				id: dbItem[0].insertId,
+				name: name,
+				path: item.path,
+				duration: duration
+			})
+		}))
 	})
 
 	const results = await Promise.allSettled(promises)
-	const insertIds = results.filter(item => item.status == "fulfilled").map(item => item.value[0].insertId)
+	const songs = results.filter(item => item.status == "fulfilled").map(item => item.value)
 
-	insertIds.forEach((item, index) => {
-		files[index].id = item
-	})
+	// console.log("results", dbResults)
+	console.log("songs res", songs)
 
-	console.log("results", results)
-	console.log("files res", files)
-
-	return files
+	return songs
 }
 
 // Checks if each song in sqlite database exists on device, if not then delete and do a scan of the songs folder once again
