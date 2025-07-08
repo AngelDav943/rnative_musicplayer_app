@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { DimensionValue, Image, ImageSourcePropType, Pressable, ScrollView, Text, View } from 'react-native'
+import React, { useEffect, useRef, useState } from 'react'
+import { DimensionValue, Image, ImageSourcePropType, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import LinearGradient from 'react-native-linear-gradient'
 import { useTheme } from '../contexts/useTheme'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -11,6 +11,7 @@ import { DB_song, song } from '../types/song';
 import { useDatabase } from '../contexts/useDatabase';
 import HomeHeader from '../components/HomeHeader';
 import { usePlayer } from '../contexts/usePlayer';
+import { Portal } from '../contexts/PortalProvider';
 
 function HomePage() {
 	const { background, onBackground, surface, onSurface, secondary, onSecondary, primary } = useTheme();
@@ -19,12 +20,16 @@ function HomePage() {
 	const { getDB } = useDatabase();
 
 	const [recentlyPlayed, setRecently] = useState<song[]>();
+	const [creatingPlaylist, setCreatingPlaylist] = useState<boolean>();
+
+	const playlistNameInput = useRef<TextInput>(null);
+	const playlistDescInput = useRef<TextInput>(null);
 
 	async function getRecentlyPlayed() {
 		const db = await getDB();
 
 		const [{ rows: results }] = await db.executeSql(
-			"SELECT songs.* FROM songs JOIN recent_songs ON songs.id = recent_songs.song_id ORDER BY recent_songs.id DESC"
+			"SELECT DISTINCT songs.* FROM songs JOIN recent_songs ON songs.id = recent_songs.song_id ORDER BY recent_songs.id DESC LIMIT 6"
 		)
 		const recent = results.raw() as DB_song[]
 		setRecently(recent.map(item => ({ ...item, duration: parseInt(item.duration || "0") })))
@@ -41,6 +46,75 @@ function HomePage() {
 			colors={[surface, background]}
 			style={{ height: 64, flex: 1 }}
 		>
+			{creatingPlaylist && <Portal name='searchModal'>
+				<Pressable
+					style={{
+						position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+						backgroundColor: "black", opacity: 0.2
+					}}
+					onPress={() => setCreatingPlaylist(false)}
+				/>
+				<View style={{
+					zIndex: 2,
+					position: "absolute", top: "50%", left: "50%",
+					width: "100%", height: "100%",
+					maxWidth: 400, maxHeight: 500,
+					borderRadius: 16,
+					backgroundColor: background,
+					transform: [
+						{ translateX: "-50%" },
+						{ translateY: "-50%" }
+					]
+				}}>
+					<View style={{ margin: 8, flexDirection: "row", gap: 8 }}>
+						<Image
+							source={require("../assets/images/folder.png")}
+							style={{ height: 64 }}
+						/>
+						<Text
+							children="Create playlist"
+							style={{
+								fontFamily: getComicNueueFont("bold"), color: onBackground,
+								fontSize: 32, verticalAlign: "middle"
+							}}
+						/>
+					</View>
+					<TextInput
+						ref={playlistNameInput}
+						placeholder='Playlist name'
+						style={{
+							margin: 8, padding: 16, backgroundColor: surface, borderRadius: 8
+						}}
+					/>
+
+					<TextInput
+						ref={playlistDescInput}
+						multiline
+						placeholder='Playlist description'
+						maxLength={512}
+						style={{
+							verticalAlign: "top", flex: 1,
+							marginHorizontal: 8, padding: 16, backgroundColor: surface, borderRadius: 8
+						}}
+					/>
+
+					<Pressable children={<LinearGradient
+						style={{
+							margin: 8, padding: 16, borderRadius: 8
+						}}
+						colors={[primary, secondary]}
+					>
+						<Text
+							style={{
+								fontFamily: getComicNueueFont("bold"), color: onBackground,
+								fontSize: 24, verticalAlign: "middle"
+							}}
+							children="Create"
+						/>
+					</LinearGradient>
+					} />
+				</View>
+			</Portal>}
 			<ScrollView>
 				<SafeAreaView style={{ flex: 1 }}>
 					<View>
@@ -59,6 +133,7 @@ function HomePage() {
 									iconSource={require("../assets/images/new_queue.png")}
 									width={160}
 									iconOpacity={0.6}
+									onPress={() => setCreatingPlaylist(true)}
 								/>
 							</View>
 						</ScrollView>
@@ -79,7 +154,6 @@ function HomePage() {
 										playSong(file.id)
 										getRecentlyPlayed()
 									}}
-									variant={(file.id || index) % 2}
 								/>
 							})}
 						</View>

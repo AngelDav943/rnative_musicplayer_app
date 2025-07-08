@@ -16,6 +16,7 @@ import SongsPage from './pages/SongsPage';
 import PlaylistsPage from './pages/PlaylistsPage';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DatabaseProvider } from './contexts/useDatabase';
+import { PortalProvider } from './contexts/PortalProvider';
 
 const pagesContext = createContext<any>(null);
 
@@ -64,7 +65,9 @@ function App() {
         <DatabaseProvider>
           <pagesContext.Provider value={{ setPage, setBackPressTarget }}>
             <PlayerProvider>
-              {pages[currentPage]}
+              <PortalProvider>
+                {pages[currentPage]}
+              </PortalProvider>
             </PlayerProvider>
           </pagesContext.Provider>
         </DatabaseProvider>

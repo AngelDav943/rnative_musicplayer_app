@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { View, Image, Animated, Text, Easing, Pressable, StyleProp, TextStyle, GestureResponderEvent } from 'react-native'
+import { View, Image, Animated, Text, Easing, Pressable, StyleProp, TextStyle, GestureResponderEvent, Dimensions, ScaledSize } from 'react-native'
 import { useTheme } from '../contexts/useTheme';
 import { song } from '../types/song';
 import LinearGradient from 'react-native-linear-gradient';
@@ -17,6 +17,7 @@ export default function PlayerMaximized({ currentSong, animatedProgress, setMini
 	const { primary, onSurface, onBackground, secondary, surface, background } = useTheme();
 	const { setBackPressTarget, setPage } = usePages();
 
+	const [rotated, setRotated] = useState<boolean>(false);
 	const [displayedSong, setDisplayedSong] = useState<song | null>(null)
 	const spins = 5;
 
@@ -40,9 +41,25 @@ export default function PlayerMaximized({ currentSong, animatedProgress, setMini
 	}
 
 	useEffect(() => {
-		console.log("display", currentSong)
-		setDisplayedSong(currentSong)
-	}, [])
+		if (currentSong != null) {
+			setDisplayedSong(currentSong)
+		}
+
+		function checkRotated(screen: ScaledSize) {
+			setRotated(screen.height < screen.width)
+		}
+
+		// Reanimate window
+		const subscription = Dimensions.addEventListener('change', ({ window, screen }) => {
+			checkRotated(screen)
+		});
+
+		checkRotated(Dimensions.get("screen"))
+
+		return () => {
+			subscription?.remove?.(); // clean up the listener
+		};
+	}, [currentSong])
 
 	const baseTextStyle: StyleProp<TextStyle> = {
 		fontFamily: getComicNueueFont("bold"),
@@ -65,7 +82,21 @@ export default function PlayerMaximized({ currentSong, animatedProgress, setMini
 	>
 
 		<View
-			style={{ alignItems: "flex-start" }}
+			style={{
+				alignItems: "flex-start",
+				... rotated ? {
+					position: "absolute",
+					zIndex: 2,
+					top: 16,
+					left: 16,
+					backgroundColor: secondary,
+					width: 112,
+					aspectRatio: 1,
+					borderRadius: 1000,
+					justifyContent:"center",
+					alignItems:"center"
+				} : {}
+			}}
 			children={<Pressable
 				style={{
 					paddingHorizontal: 32,
@@ -96,30 +127,6 @@ export default function PlayerMaximized({ currentSong, animatedProgress, setMini
 					position: "relative", justifyContent: "center", alignItems: "center"
 				}}
 				children={<>
-					<Animated.Image
-						width={150}
-						height={150}
-						source={require("../assets/images/sound_waves_offset.png")}
-						style={{
-							position: "absolute",
-							width: "190%", height: undefined, tintColor: "white",
-							resizeMode: "cover", aspectRatio: 1,
-							opacity: animatedProgress.interpolate({
-								inputRange: opacityInputRange,
-								outputRange: opacityOutputRange,
-								easing: Easing.linear
-							}),
-							transform: [
-								{ perspective: 75 },
-								{
-									rotateY: animatedProgress.interpolate({
-										inputRange: [0, 1],
-										outputRange: ['90deg', `${(360 * spins) + 90}deg`] // 360 * 5
-									})
-								}
-							],
-						}}
-					/>
 					<LinearGradient
 						colors={[primary, "transparent", secondary]}
 						style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
@@ -159,12 +166,17 @@ export default function PlayerMaximized({ currentSong, animatedProgress, setMini
 
 				</View>
 
-				<View style={{ flexDirection: "row", backgroundColor: surface, borderRadius: 32 }}>
+				<View style={{ flexDirection: "row", backgroundColor: surface, borderRadius: 32, overflow:"hidden" }}>
+					<LinearGradient
+						style={{justifyContent:'center', }}
+						colors={[primary, secondary]}
+					>
 					<Text
 						style={baseTextStyle}
 						children={formatTime(AudioPro.getTimings().position)}
 						onPress={() => AudioPro.seekTo(0)}
 					/>
+					</LinearGradient>
 					<View
 						onTouchMove={touchStart}
 						style={{ flex: 1, position: 'relative', height: 32, overflow: "hidden" }}

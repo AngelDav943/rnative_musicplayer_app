@@ -9,9 +9,10 @@ import { AudioPro, AudioProState } from 'react-native-audio-pro';
 interface minimizedPlayerProps {
 	currentSong: song | null
 	animatedProgress: Animated.Value
+	setMinimized?: React.Dispatch<React.SetStateAction<boolean>>
 }
 
-export default function PlayerMinimized({ currentSong, animatedProgress }: minimizedPlayerProps) {
+export default function PlayerMinimized({ currentSong, animatedProgress, setMinimized }: minimizedPlayerProps) {
 	const { primary, onSurface, onBackground, secondary } = useTheme();
 
 	if (!currentSong) return null
@@ -27,13 +28,17 @@ export default function PlayerMinimized({ currentSong, animatedProgress }: minim
 	const playIcon = require("../assets/images/play.png")
 	const pauseIcon = require("../assets/images/pause.png")
 
-	return <View style={{
-		height: 134,
-		paddingBottom: 15
-	}}>
+	return <View
+		style={{
+			height: 134,
+			paddingBottom: 15
+		}}
+	>
 		<View style={{ flexDirection: "row", paddingHorizontal: 14, alignItems: "center", zIndex: 2 }}>
 			<View
+				onTouchEnd={() => setMinimized && setMinimized(false)}
 				style={{
+					height: 115,
 					padding: 30,
 					borderRadius: 16, aspectRatio: 1,
 					backgroundColor: primary, overflow: 'hidden',
@@ -41,8 +46,8 @@ export default function PlayerMinimized({ currentSong, animatedProgress }: minim
 				}}
 				children={<>
 					<Animated.Image
-						width={150}
-						height={150}
+						width={140}
+						height={140}
 						source={require("../assets/images/sound_waves_offset.png")}
 						style={{
 							position: "absolute",
@@ -51,7 +56,7 @@ export default function PlayerMinimized({ currentSong, animatedProgress }: minim
 							opacity: animatedProgress.interpolate({
 								inputRange: opacityInputRange,
 								outputRange: opacityOutputRange,
-								easing: Easing.linear
+								easing: Easing.inOut(Easing.circle)
 							}),
 							transform: [
 								{ perspective: 75 },
@@ -79,7 +84,7 @@ export default function PlayerMinimized({ currentSong, animatedProgress }: minim
 					/>
 				</>}
 			/>
-			<View style={{ flex: 1, paddingLeft: 16 }}>
+			<View style={{ flex: 1, paddingLeft: 16 }} onTouchEnd={() => setMinimized && setMinimized(false)}>
 				<Text
 					style={{
 						fontSize: 25,
@@ -94,7 +99,7 @@ export default function PlayerMinimized({ currentSong, animatedProgress }: minim
 				style={{
 					width: 80,
 					height: "100%",
-					justifyContent:"center",
+					justifyContent: "center",
 					padding: 16
 				}}
 				onPress={() => {
@@ -120,7 +125,7 @@ export default function PlayerMinimized({ currentSong, animatedProgress }: minim
 				/>}
 			/>
 		</View>
-		<View style={{ position: 'relative', height: 7, marginTop: 8 }}>
+		<View style={{ position: 'relative', height: 8, marginTop: 10 }}>
 			<Animated.View style={{
 				height: "100%",
 				width: animatedProgress.interpolate({

@@ -7,7 +7,7 @@ function SongTile({
 	name,
 	onPress,
 	maxNameLength = 12,
-	variant = Math.round(Math.random() * 1)
+	variant = -1//Math.round(Math.random() * 1)
 }: {
 	name: string
 	onPress?: ((event: GestureResponderEvent) => void)
@@ -31,7 +31,7 @@ function SongTile({
 				// position: "relative", overflow: "hidden",
 			}}
 		>
-			<Image
+			{(variant >= 0) && <Image
 				width={150}
 				height={150}
 				source={[
@@ -44,7 +44,7 @@ function SongTile({
 					top: [-35, -20][variant], right: 0,
 					resizeMode: "cover", aspectRatio: 1, opacity: 0.6
 				}}
-			/>
+			/>}
 			<LinearGradient
 				style={{ position: "absolute", width: "100%", height: "100%" }}
 				colors={["transparent", secondary]}

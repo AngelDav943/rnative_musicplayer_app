@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
-import { View, Text, Pressable, ScrollView, Image } from 'react-native'
+import { View, Text, Pressable, ScrollView, Image, TextInput } from 'react-native'
 import { getComicNueueFont } from '../utilities/basic';
 import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../contexts/useTheme';
 import SongTile from '../components/SongTile';
 import { usePages } from '../App';
 import { usePlayer } from '../contexts/usePlayer';
+import { Portal } from '../contexts/PortalProvider';
 
 function SongsPage() {
 	const { allSongs, playSong } = usePlayer();
@@ -13,6 +14,7 @@ function SongsPage() {
 	const { setPage, setBackPressTarget } = usePages();
 
 	const [songPage, setSongPage] = useState<number>(1);
+	const [searching, setSearching] = useState<boolean>(false);
 
 	const TextStyle = {
 		fontSize: 32,
@@ -24,6 +26,29 @@ function SongsPage() {
 		<View
 			style={{ backgroundColor: background, height: 64, flex: 1 }}
 		>
+			{searching && <Portal name='searchModal'>
+				<View style={{
+					position: "absolute", top: "50%", left: "50%",
+					width: "100%", height: "100%",
+					maxWidth: 400, maxHeight: 500,
+					borderRadius: 16,
+					backgroundColor: background,
+					transform: [
+						{ translateX:"-50%" },
+						{ translateY:"-50%"}
+					]
+				}}>
+					<TextInput
+						placeholder='Search here'
+						style={{
+							margin: 8, padding: 16, backgroundColor: surface,
+							borderTopLeftRadius: 8, borderTopRightRadius: 8
+						}}
+					/>
+
+					<Text>Heyo</Text>
+				</View>
+			</Portal>}
 			<ScrollView style={{ paddingHorizontal: 16, flex: 1 }}>
 				<View style={{ paddingTop: 64, paddingBottom: 128, gap: 8, flex: 1 }}>
 					<View

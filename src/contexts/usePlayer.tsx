@@ -6,11 +6,12 @@ import { DB_song, song } from "../types/song";
 import { setting } from "../types/settings";
 import { scanSongFolder, scanSongDB } from "../utilities/songDatabase";
 import { useDatabase } from "./useDatabase";
-import { Animated, Easing, useAnimatedValue, View } from "react-native";
+import { Animated, BackHandler, Easing, useAnimatedValue, View } from "react-native";
 import TabWindow from "../components/TabWindow";
 import { useTheme } from "./useTheme";
 import PlayerMinimized from "../components/PlayerMinimized";
 import PlayerMaximized from "../components/PlayerMaximized";
+import { usePages } from "../App";
 
 const playerContext = createContext<any>(null);
 
@@ -27,6 +28,7 @@ export const usePlayer: () => ProviderUtils = () => {
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
 	const { primary } = useTheme();
+	const { setPage, setBackPressTarget } = usePages();
 	const { getDB } = useDatabase();
 
 	const { position, duration } = useAudioPro();
@@ -101,32 +103,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 		}
 
 		const database = await getDB()
-		const result = await database.transaction(tx => {
-			tx.executeSql(
-				"INSERT OR REPLACE INTO recent_songs (song_id) VALUES (?)", [song.id],
-				() => tx.executeSql(
-					"SELECT COUNT(*) as count FROM recent_songs", [],
-					(_, countResult) => {
-						const totalRows = countResult.rows.item(0).count;
-						if (totalRows > 6) {
-							const toDelete = totalRows - 6;
-							tx.executeSql(
-								`DELETE FROM recent_songs WHERE id IN ( SELECT id FROM recent_songs ORDER BY id ASC LIMIT ? )`,
-								[toDelete], () => { },
-								(_, err) => {
-									console.error("Error deleting old rows:", err);
-									return false;
-								}
-							);
-						}
-					}
-				),
-				(tx, err) => {
-					console.error("Error inserting recent song, message:", err)
-					return false
-				}
-			)
-		}, error => console.error("Error during recent_song database transaction, message:", error))
+		const result = await database.executeSql("INSERT INTO recent_songs (song_id) VALUES (?)", [song.id])
 	}
 
 	const exportUtils: ProviderUtils = {
@@ -158,8 +135,21 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 	}, [])
 
 	useEffect(() => {
+		if (minimizedPlayer == false) {
+			const backEvent = BackHandler.addEventListener('hardwareBackPress', () => {
+				setMinimizedPlayer(true)
+				backEvent.remove()
+				return true
+			})
+
+			return () => {
+				backEvent.remove()
+			}
+		}
+	}, [minimizedPlayer])
+
+	useEffect(() => {
 		const listener = AudioPro.addEventListener(async (event) => {
-			console.log("Sound event!!", event)
 			if (event.track !== null && currentSong == null) {
 				const song = allSongs.find(item => item.id == parseInt(event.track!.id));
 				if (song) {
@@ -185,8 +175,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 			}
 
 			if (event.type == AudioProEventType.TRACK_ENDED) {
+				AudioPro.clear()
 				setCurrentSong(null)
 			}
+			console.log("Sound event!!", event)
 
 		})
 
@@ -206,7 +198,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 					<TabWindow
 						minimizedState={[minimizedPlayer, setMinimizedPlayer]}
 						hiddenState={currentSong == null}
-						minimizedChildren={<PlayerMinimized animatedProgress={animatedProgress} currentSong={currentSong} />}
+						minimizedChildren={<PlayerMinimized animatedProgress={animatedProgress} currentSong={currentSong} setMinimized={setMinimizedPlayer} />}
 						children={<PlayerMaximized animatedProgress={animatedProgress} currentSong={currentSong} setMinimized={setMinimizedPlayer} />}
 					/>
 				</>}
