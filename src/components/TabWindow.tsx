@@ -172,7 +172,7 @@ export default function TabWindow({
 					width: "100%",
 					height: "100%",
 					paddingTop: 16,
-					zIndex: 2,
+					zIndex: minimized ? 2 : 4,
 					backgroundColor: surface,
 					borderTopLeftRadius: 20,
 					borderTopRightRadius: 20,

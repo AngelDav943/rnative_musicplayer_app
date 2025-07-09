@@ -1,13 +1,17 @@
-import SQLite from 'react-native-sqlite-storage';
+import SQLite, { SQLiteDatabase } from 'react-native-sqlite-storage';
 
 SQLite.enablePromise(true);
 
+let database: SQLiteDatabase | null = null
+
 export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
+	if (database) return database
 	return new Promise(resolve => {
 		SQLite.openDatabase(
 			{ name: "rn_music_database", location: "default" },
 			(db) => {
 				console.log("Successfully opened database")
+				database = db
 				resolve(db)
 			},
 			error => { console.error("Error while opening the local database, message:", error) }
@@ -33,6 +37,7 @@ CREATE TABLE IF NOT EXISTS playlists (
 	"id" INTEGER PRIMARY KEY AUTOINCREMENT,
 	"name" TEXT NOT NULL,
 	"description" TEXT DEFAULT "",
+	"color" TEXT DEFAULT "",
 	"created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	"updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );`
@@ -45,6 +50,7 @@ CREATE TABLE IF NOT EXISTS playlist_song (
 	"created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	FOREIGN KEY ("song_id") REFERENCES songs("id"),
 	FOREIGN KEY ("playlist_id") REFERENCES playlists("id")
+	UNIQUE("song_id", "playlist_id")
 );`
 		),
 		db.executeSql(`

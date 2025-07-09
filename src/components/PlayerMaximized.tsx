@@ -6,6 +6,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { formatTime, getComicNueueFont } from '../utilities/basic';
 import { AudioPro, AudioProState } from 'react-native-audio-pro';
 import { usePages } from '../App';
+import { usePlayer } from '../contexts/usePlayer';
 
 interface minimizedPlayerProps {
 	currentSong: song | null
@@ -14,11 +15,11 @@ interface minimizedPlayerProps {
 }
 
 export default function PlayerMaximized({ currentSong, animatedProgress, setMinimized }: minimizedPlayerProps) {
-	const { primary, onSurface, onBackground, secondary, surface, background } = useTheme();
+	const { loopMode, setLoopMode, queue } = usePlayer()
+	const { inversePrimary, primary, onSurface, onBackground, secondary, surface, background } = useTheme();
 	const { setBackPressTarget, setPage } = usePages();
 
 	const [rotated, setRotated] = useState<boolean>(false);
-	const [displayedSong, setDisplayedSong] = useState<song | null>(null)
 	const spins = 5;
 
 	const N = 20;
@@ -41,10 +42,6 @@ export default function PlayerMaximized({ currentSong, animatedProgress, setMini
 	}
 
 	useEffect(() => {
-		if (currentSong != null) {
-			setDisplayedSong(currentSong)
-		}
-
 		function checkRotated(screen: ScaledSize) {
 			setRotated(screen.height < screen.width)
 		}
@@ -68,7 +65,7 @@ export default function PlayerMaximized({ currentSong, animatedProgress, setMini
 		paddingHorizontal: 8
 	}
 
-	if (!displayedSong) return null
+	if (!currentSong) return null
 	return <LinearGradient
 		start={{ x: 0.0, y: 0.25 }}
 		end={{ x: 0, y: 0.75 }}
@@ -84,7 +81,7 @@ export default function PlayerMaximized({ currentSong, animatedProgress, setMini
 		<View
 			style={{
 				alignItems: "flex-start",
-				... rotated ? {
+				...rotated ? {
 					position: "absolute",
 					zIndex: 2,
 					top: 16,
@@ -93,8 +90,8 @@ export default function PlayerMaximized({ currentSong, animatedProgress, setMini
 					width: 112,
 					aspectRatio: 1,
 					borderRadius: 1000,
-					justifyContent:"center",
-					alignItems:"center"
+					justifyContent: "center",
+					alignItems: "center"
 				} : {}
 			}}
 			children={<Pressable
@@ -107,7 +104,7 @@ export default function PlayerMaximized({ currentSong, animatedProgress, setMini
 					if (setMinimized) setMinimized(true)
 				}}
 				children={<Image
-					style={{ height: 80, objectFit: "contain", aspectRatio: 1, tintColor: onBackground }}
+					style={{ height: 80, objectFit: "contain", aspectRatio: 1, tintColor: "white" }}
 					source={require("../assets/images/arrow_left.png")}
 				/>}
 			/>}
@@ -116,7 +113,8 @@ export default function PlayerMaximized({ currentSong, animatedProgress, setMini
 
 		<View style={{
 			flex: 1, alignItems: "center", justifyContent: "center", flexBasis: 350, minHeight: 350,
-			// backgroundColor: "orange"
+			// backgroundColor: "orange",
+			marginVertical: 64
 		}}>
 			<View
 				style={{
@@ -147,39 +145,37 @@ export default function PlayerMaximized({ currentSong, animatedProgress, setMini
 		<View
 			style={{
 				flex: 1, flexGrow: 1, flexBasis: 400, paddingHorizontal: 32,
+				paddingBottom: 64,
 				justifyContent: "center"
 			}}
 			children={<View style={{
 				width: "100%", justifyContent: "center"
 			}}>
-				<View style={{}}>
-					<Text
-						style={{
-							fontSize: 32,
-							paddingVertical: 64,
-							fontFamily: getComicNueueFont("bold"),
-							textAlign: "center",
-							color: onSurface
-						}}
-						children={`${displayedSong.name}`}
-					/>
+				<Text
+					style={{
+						fontSize: 32,
+						paddingVertical: 64,
+						fontFamily: getComicNueueFont("bold"),
+						textAlign: "center",
+						color: onSurface
+					}}
+					children={`${currentSong.name}`}
+				/>
 
-				</View>
-
-				<View style={{ flexDirection: "row", backgroundColor: surface, borderRadius: 32, overflow:"hidden" }}>
+				<View style={{ flexDirection: "row", backgroundColor: surface, borderRadius: 32, overflow: "hidden" }}>
 					<LinearGradient
-						style={{justifyContent:'center', }}
+						style={{ justifyContent: 'center', }}
 						colors={[primary, secondary]}
 					>
-					<Text
-						style={baseTextStyle}
-						children={formatTime(AudioPro.getTimings().position)}
-						onPress={() => AudioPro.seekTo(0)}
-					/>
+						<Text
+							style={baseTextStyle}
+							children={formatTime(AudioPro.getTimings().position)}
+							onPress={() => AudioPro.seekTo(0)}
+						/>
 					</LinearGradient>
 					<View
 						onTouchMove={touchStart}
-						style={{ flex: 1, position: 'relative', height: 32, overflow: "hidden" }}
+						style={{ flex: 1, position: 'relative', height: 32, overflow: "hidden", marginHorizontal: -1 }}
 						children={<Animated.View
 							style={{
 								height: 32,
@@ -196,7 +192,7 @@ export default function PlayerMaximized({ currentSong, animatedProgress, setMini
 					/>
 					<Text
 						style={baseTextStyle}
-						children={formatTime(displayedSong.duration || 123)}
+						children={formatTime(currentSong.duration || 123)}
 					/>
 				</View>
 
@@ -239,11 +235,30 @@ export default function PlayerMaximized({ currentSong, animatedProgress, setMini
 
 					<Pressable
 						style={{ width: 92 }}
-						onPress={() => { }}
+						onPress={() => {
+							if (loopMode == "none") {
+								setLoopMode("loop")
+								return
+							}
+
+							if (queue !== null) {
+								if (loopMode == "loop") {
+									setLoopMode("queue")
+									return
+								}
+
+								if (loopMode == "queue") {
+									setLoopMode("shuffle")
+									return
+								}
+							}
+
+							setLoopMode("none")
+						}}
 						children={<Image
-							source={require("../assets/images/repeat.png")}
+							source={ loopMode == "shuffle" ? require("../assets/images/shuffle.png") : require("../assets/images/repeat.png")}
 							style={{
-								height: undefined, width: "100%", tintColor: surface,
+								height: undefined, width: "100%", tintColor: loopMode == "none" ? surface : (loopMode == "queue" || loopMode == "shuffle") ? inversePrimary : primary,
 								resizeMode: "cover", aspectRatio: 1
 							}}
 						/>}

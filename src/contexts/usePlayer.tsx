@@ -1,6 +1,5 @@
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import { AudioPro, AudioProContentType, AudioProEventType, useAudioPro } from "react-native-audio-pro";
-import { databaseInit } from "../utilities/database";
+import { AudioPro, useAudioPro } from "react-native-audio-pro";
 import { hasStoragePerms } from "../utilities/basic";
 import { DB_song, song } from "../types/song";
 import { setting } from "../types/settings";
@@ -12,6 +11,8 @@ import { useTheme } from "./useTheme";
 import PlayerMinimized from "../components/PlayerMinimized";
 import PlayerMaximized from "../components/PlayerMaximized";
 import { usePages } from "../App";
+import SongPreview from "../components/SongPreview";
+import { AudioPlay, getCurrentlyPlaying, getLoopMode, getQueue, listenPlayerEvents, PlayerEventType, PlayerLoopMode, updateLoopMode } from "../services/audioService";
 
 const playerContext = createContext<any>(null);
 
@@ -20,6 +21,11 @@ interface ProviderUtils {
 	duration: number | null
 	allSongs: song[]
 	playSong: (songID: number) => void
+	viewSong: (songID: number) => void
+	loopMode: PlayerLoopMode
+	setLoopMode: React.Dispatch<React.SetStateAction<PlayerLoopMode>>
+	queue: song[] | null
+	currentSong: song | null
 }
 
 export const usePlayer: () => ProviderUtils = () => {
@@ -33,9 +39,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
 	const { position, duration } = useAudioPro();
 
-	const [currentSong, setCurrentSong] = useState<song | null>(null);
-	const [queue, setQueue] = useState([]);
-	const [currentQueuePosition, setQueuePosition] = useState<number | null>(null);
+	const [currentSong, setCurrentSong] = useState<song | null>(getCurrentlyPlaying());
+	const [loopMode, setLoopMode] = useState<PlayerLoopMode>(getLoopMode());
+
+	const [previewSong, setPreviewSong] = useState<song | null>(null);
+
+	const [queue, setQueue] = useState<song[] | null>(getQueue());
 
 	const [allSongs, setAllSongs] = useState<song[]>([]);
 	const [loading, setLoading] = useState<boolean>(true);
@@ -79,45 +88,33 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 		return files
 	}
 
+	async function viewSong(songID: number) {
+		const song = allSongs.find(item => item.id == songID);
+		if (song == undefined || song.id == undefined) return;
+		setPreviewSong(song)
+	}
+
 	async function playSong(songID: number) {
 		const song = allSongs.find(item => item.id == songID);
-		console.log("Found", song)
-
-		if (song == undefined || song.id == undefined) {
-			return;
-		}
+		if (song == undefined || song.id == undefined) return;
 
 		try {
 			console.log("filepath", `file://${song.path}`,)
-			AudioPro.play({
-				id: String(song.id),
-				artwork: require("../assets/images/gradient.png"),
-				// artwork: "https://angeldav.net/images/boxly.png",
-				url: `file://${song.path}`,
-				title: song.name,
-			})
+			await AudioPlay(song)
 			animatedProgress.setValue(0);
 			setCurrentSong(song)
 		} catch (error) {
 			console.warn("err", error)
 		}
-
-		const database = await getDB()
-		const result = await database.executeSql("INSERT INTO recent_songs (song_id) VALUES (?)", [song.id])
 	}
 
 	const exportUtils: ProviderUtils = {
-		position, duration, allSongs, playSong
+		position, duration, allSongs, playSong, viewSong,
+		loopMode, setLoopMode, queue, currentSong
 	}
 
 	async function init() {
 		console.log("init")
-
-		AudioPro.configure({
-			contentType: AudioProContentType.MUSIC,
-		});
-
-		await databaseInit();
 		const allFetchedSongs = await getAllSongs()
 		setAllSongs(allFetchedSongs);
 
@@ -130,6 +127,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 			}
 		}
 	}
+
 	useEffect(() => {
 		init()
 	}, [])
@@ -149,43 +147,47 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 	}, [minimizedPlayer])
 
 	useEffect(() => {
-		const listener = AudioPro.addEventListener(async (event) => {
-			if (event.track !== null && currentSong == null) {
-				const song = allSongs.find(item => item.id == parseInt(event.track!.id));
-				if (song) {
-					setCurrentSong(song)
-				}
-			}
-
-			if (event.payload && event.payload.position && event.payload.duration) {
-				if (event.type == AudioProEventType.SEEK_COMPLETE) {
-					animatedProgress.setValue(event.payload.position / event.payload.duration)
-					return;
-				}
-
-				if (event.type == AudioProEventType.PROGRESS) {
-					Animated.timing(animatedProgress, {
-						toValue: event.payload.position / event.payload.duration,
-						duration: 1100,
-						useNativeDriver: false,
-						easing: Easing.linear
-					}).start()
-					return;
-				}
-			}
-
-			if (event.type == AudioProEventType.TRACK_ENDED) {
-				AudioPro.clear()
+		const subscription = listenPlayerEvents(event => {
+			if (event.type == PlayerEventType.STOP) {
 				setCurrentSong(null)
+				return;
 			}
-			console.log("Sound event!!", event)
 
+			if (event.type == PlayerEventType.ADDED && (currentSong == null || currentSong.id !== event.data.id)) {
+				setCurrentSong(event.data)
+			}
+
+			if (event.type == PlayerEventType.SEEK_COMPLETE) {
+				animatedProgress.setValue(event.data.position / event.data.duration)
+				return;
+			}
+
+			if (event.type == PlayerEventType.PROGRESS) {
+				Animated.timing(animatedProgress, {
+					toValue: event.data.position / event.data.duration,
+					duration: 1100,
+					useNativeDriver: false,
+					easing: Easing.linear
+				}).start()
+				return
+			}
+
+			if (event.type == PlayerEventType.ADDED_QUEUE) {
+				setQueue(event.data)
+			}
+
+			console.log("PLAYER EVENT:", event)
 		})
 
 		return () => {
-			listener.remove()
+			subscription.remove()
 		}
+
 	}, [loading])
+
+	useEffect(() => {
+		updateLoopMode(loopMode)
+	}, [loopMode])
 
 	return (
 		<playerContext.Provider value={{ ...exportUtils }}>
@@ -195,6 +197,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 				</View>
 				: <>
 					{children}
+					{previewSong && <SongPreview
+						song={previewSong}
+						closingCallback={() => setPreviewSong(null)}
+					/>}
 					<TabWindow
 						minimizedState={[minimizedPlayer, setMinimizedPlayer]}
 						hiddenState={currentSong == null}

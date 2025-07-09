@@ -7,9 +7,10 @@ import SongTile from '../components/SongTile';
 import { usePages } from '../App';
 import { usePlayer } from '../contexts/usePlayer';
 import { Portal } from '../contexts/PortalProvider';
+import SearchSongModal from '../components/SearchSongModal';
 
 function SongsPage() {
-	const { allSongs, playSong } = usePlayer();
+	const { allSongs, viewSong } = usePlayer();
 	const { background, onBackground, surface, secondary, onSecondary } = useTheme();
 	const { setPage, setBackPressTarget } = usePages();
 
@@ -26,29 +27,10 @@ function SongsPage() {
 		<View
 			style={{ backgroundColor: background, height: 64, flex: 1 }}
 		>
-			{searching && <Portal name='searchModal'>
-				<View style={{
-					position: "absolute", top: "50%", left: "50%",
-					width: "100%", height: "100%",
-					maxWidth: 400, maxHeight: 500,
-					borderRadius: 16,
-					backgroundColor: background,
-					transform: [
-						{ translateX:"-50%" },
-						{ translateY:"-50%"}
-					]
-				}}>
-					<TextInput
-						placeholder='Search here'
-						style={{
-							margin: 8, padding: 16, backgroundColor: surface,
-							borderTopLeftRadius: 8, borderTopRightRadius: 8
-						}}
-					/>
-
-					<Text>Heyo</Text>
-				</View>
-			</Portal>}
+			{searching && <Portal name='searchModal' children={<SearchSongModal
+				closingCallback={() => {setSearching(false)}}
+				searchCallback={() => { }}
+			/>} />}
 			<ScrollView style={{ paddingHorizontal: 16, flex: 1 }}>
 				<View style={{ paddingTop: 64, paddingBottom: 128, gap: 8, flex: 1 }}>
 					<View
@@ -78,6 +60,16 @@ function SongsPage() {
 							}}
 							children="Song library"
 						/>
+
+						<Pressable
+							onPress={() => {
+								setSearching(true)
+							}}
+							children={<Image
+								style={{ height: 64, objectFit: "contain", aspectRatio: 1, tintColor: onBackground }}
+								source={require("../assets/images/search.png")}
+							/>}
+						/>
 					</View>
 					{allSongs && allSongs.slice(
 						(songPage - 1) * 10,
@@ -86,7 +78,7 @@ function SongsPage() {
 						if (file.id) return (
 							<SongTile
 								key={file.id}
-								onPress={() => file.id && playSong(file.id)}
+								onPress={() => file.id && viewSong(file.id)}
 								variant={(file.id + (songPage % 3)) % 2}
 								name={file.name}
 								maxNameLength={40}

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Pressable, Image, Text, GestureResponderEvent, View } from 'react-native'
+import { Pressable, Image, Text, GestureResponderEvent, View, ColorValue } from 'react-native'
 import { useTheme } from '../contexts/useTheme';
 import LinearGradient from 'react-native-linear-gradient';
 
@@ -7,12 +7,14 @@ function SongTile({
 	name,
 	onPress,
 	maxNameLength = 12,
-	variant = -1//Math.round(Math.random() * 1)
+	variant = -1, //Math.round(Math.random() * 1)
+	background: bgColor
 }: {
 	name: string
 	onPress?: ((event: GestureResponderEvent) => void)
 	maxNameLength?: number
 	variant?: number
+	background?: ColorValue
 }) {
 	const { background, onBackground, surface, onSurface, secondary } = useTheme();
 
@@ -24,7 +26,7 @@ function SongTile({
 				flexGrow: 1,
 				minWidth: 200,
 				flexBasis: 200,
-				backgroundColor: secondary,
+				backgroundColor: bgColor ? bgColor : secondary,
 				height: 64,
 				borderRadius: 16, overflow: "hidden",
 				alignItems: "center", justifyContent: "center"

@@ -24,12 +24,13 @@ const pages = {
   "home": <HomePage />,
   "categories": <CategoriesPage />,
   "songs": <SongsPage />,
-  "playlists": <PlaylistsPage />
+  "playlist": <PlaylistsPage />
 } as const
 
 interface pagesProviderUtils {
-  setPage: React.Dispatch<React.SetStateAction<keyof typeof pages>>
+  setPage: (page: keyof typeof pages, state?: any) => void
   setBackPressTarget: React.Dispatch<React.SetStateAction<keyof typeof pages | null>>
+  state: any | null
 }
 
 export const usePages: () => pagesProviderUtils = () => {
@@ -38,13 +39,20 @@ export const usePages: () => pagesProviderUtils = () => {
 
 function App() {
   // const { background } = useTheme();
+  const [stateData, setStateData] = useState<any | null>(null);
   const [currentPage, setPage] = useState<keyof typeof pages>("home")
   const [backPressTarget, setBackPressTarget] = useState<keyof typeof pages | null>(null);
+
+  function updateCurrentPage(target: keyof typeof pages, state: any) {
+    setStateData(state)
+    setPage(target)
+  }
 
   function handleBackPress() {
     console.log("backpress", backPressTarget)
     if (backPressTarget !== null) {
       setPage(backPressTarget)
+      setStateData(null)
       setBackPressTarget(null)
       return true
     }
@@ -61,17 +69,15 @@ function App() {
 
   return (
     <ThemeProvider>
-      <SafeAreaProvider>
-        <DatabaseProvider>
-          <pagesContext.Provider value={{ setPage, setBackPressTarget }}>
-            <PlayerProvider>
-              <PortalProvider>
-                {pages[currentPage]}
-              </PortalProvider>
-            </PlayerProvider>
-          </pagesContext.Provider>
-        </DatabaseProvider>
-      </SafeAreaProvider>
+      <DatabaseProvider>
+        <pagesContext.Provider value={{ setPage: updateCurrentPage, setBackPressTarget, state: stateData }}>
+          <PlayerProvider>
+            <PortalProvider>
+              {pages[currentPage]}
+            </PortalProvider>
+          </PlayerProvider>
+        </pagesContext.Provider>
+      </DatabaseProvider>
     </ThemeProvider>
   );
 }

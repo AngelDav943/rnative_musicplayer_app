@@ -105,8 +105,6 @@ export default function PlayerMinimized({ currentSong, animatedProgress, setMini
 				onPress={() => {
 					const audioState = AudioPro.getState()
 					console.log("state:", AudioPro.getState())
-					// if (audioState == AudioProState.IDLE) AudioPro.pause()
-
 					if (audioState == AudioProState.PLAYING) {
 						AudioPro.pause()
 					} else {

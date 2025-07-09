@@ -1,9 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { DimensionValue, Image, ImageSourcePropType, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import React, { useEffect, useState } from 'react'
+import { Image, Pressable, ScrollView, Text, View } from 'react-native'
 import LinearGradient from 'react-native-linear-gradient'
 import { useTheme } from '../contexts/useTheme'
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { getComicNueueFont, getNameAndExtension } from '../utilities/basic';
+import { getComicNueueFont } from '../utilities/basic';
 import ButtonFolder, { BaseButtonFolder } from '../components/ButtonFolder';
 import { usePages } from '../App';
 import SongTile from '../components/SongTile';
@@ -12,18 +11,20 @@ import { useDatabase } from '../contexts/useDatabase';
 import HomeHeader from '../components/HomeHeader';
 import { usePlayer } from '../contexts/usePlayer';
 import { Portal } from '../contexts/PortalProvider';
+import { playlist } from '../types/playlist';
+import CreatePlaylistModal from '../components/CreatePlaylistModal';
+import { listenPlayerEvents, PlayerEventType } from '../services/audioService';
 
 function HomePage() {
-	const { background, onBackground, surface, onSurface, secondary, onSecondary, primary } = useTheme();
+	const { background, surface, secondary, onSecondary } = useTheme();
 	const { setPage, setBackPressTarget } = usePages();
-	const { playSong } = usePlayer();
+	const { viewSong } = usePlayer();
 	const { getDB } = useDatabase();
 
 	const [recentlyPlayed, setRecently] = useState<song[]>();
-	const [creatingPlaylist, setCreatingPlaylist] = useState<boolean>();
+	const [playlists, setPlaylists] = useState<playlist[]>();
 
-	const playlistNameInput = useRef<TextInput>(null);
-	const playlistDescInput = useRef<TextInput>(null);
+	const [creatingPlaylist, setCreatingPlaylist] = useState<boolean>();
 
 	async function getRecentlyPlayed() {
 		const db = await getDB();
@@ -35,8 +36,63 @@ function HomePage() {
 		setRecently(recent.map(item => ({ ...item, duration: parseInt(item.duration || "0") })))
 	}
 
+	async function getPlaylists() {
+		const db = await getDB();
+
+		const [{ rows: results }] = await db.executeSql(
+			"SELECT * FROM playlists ORDER BY created_at ASC"
+		)
+		const playlists = results.raw() as playlist[]
+		setPlaylists(playlists)
+	}
+
+	async function createPlaylist(data: { name: string; description: string; color: string; }) {
+		const db = await getDB();
+
+		console.log("playlist to create:", data)
+
+		const createDate = new Date().toISOString()
+		try {
+
+			const [{ insertId: newID }] = await db.executeSql(
+				"INSERT INTO playlists (name, description, color, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+				[data.name, data.description, data.color, createDate, createDate]
+			)
+
+			const addedPlaylist: playlist = {
+				id: newID,
+				name: data.name,
+				description: data.description,
+				color: data.color,
+				created_at: createDate,
+				updated_at: createDate
+			}
+
+			console.log("playlist added!!", addedPlaylist)
+			setPlaylists(current => ([
+				...(current || []), addedPlaylist
+			]))
+			setCreatingPlaylist(false)
+		} catch (error) {
+			console.error("Failed playlist creation, message:", error)
+		}
+	}
+
 	useEffect(() => {
+		const subscription = listenPlayerEvents(event => {
+			if (event.type == PlayerEventType.ADDED) {
+				getRecentlyPlayed()
+				return;
+			}
+		})
+
 		getRecentlyPlayed()
+		getPlaylists()
+
+		return () => {
+			subscription.remove()
+		}
+
 	}, [])
 
 	return (
@@ -46,147 +102,92 @@ function HomePage() {
 			colors={[surface, background]}
 			style={{ height: 64, flex: 1 }}
 		>
-			{creatingPlaylist && <Portal name='searchModal'>
-				<Pressable
-					style={{
-						position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-						backgroundColor: "black", opacity: 0.2
-					}}
-					onPress={() => setCreatingPlaylist(false)}
-				/>
-				<View style={{
-					zIndex: 2,
-					position: "absolute", top: "50%", left: "50%",
-					width: "100%", height: "100%",
-					maxWidth: 400, maxHeight: 500,
-					borderRadius: 16,
-					backgroundColor: background,
-					transform: [
-						{ translateX: "-50%" },
-						{ translateY: "-50%" }
-					]
-				}}>
-					<View style={{ margin: 8, flexDirection: "row", gap: 8 }}>
-						<Image
-							source={require("../assets/images/folder.png")}
-							style={{ height: 64 }}
-						/>
-						<Text
-							children="Create playlist"
-							style={{
-								fontFamily: getComicNueueFont("bold"), color: onBackground,
-								fontSize: 32, verticalAlign: "middle"
-							}}
-						/>
-					</View>
-					<TextInput
-						ref={playlistNameInput}
-						placeholder='Playlist name'
-						style={{
-							margin: 8, padding: 16, backgroundColor: surface, borderRadius: 8
-						}}
-					/>
-
-					<TextInput
-						ref={playlistDescInput}
-						multiline
-						placeholder='Playlist description'
-						maxLength={512}
-						style={{
-							verticalAlign: "top", flex: 1,
-							marginHorizontal: 8, padding: 16, backgroundColor: surface, borderRadius: 8
-						}}
-					/>
-
-					<Pressable children={<LinearGradient
-						style={{
-							margin: 8, padding: 16, borderRadius: 8
-						}}
-						colors={[primary, secondary]}
-					>
-						<Text
-							style={{
-								fontFamily: getComicNueueFont("bold"), color: onBackground,
-								fontSize: 24, verticalAlign: "middle"
-							}}
-							children="Create"
-						/>
-					</LinearGradient>
-					} />
-				</View>
-			</Portal>}
+			{creatingPlaylist && <Portal
+				name='createPlaylistModal'
+				children={<CreatePlaylistModal
+					closingCallback={() => setCreatingPlaylist(false)}
+					createCallback={createPlaylist}
+				/>}
+			/>}
 			<ScrollView>
-				<SafeAreaView style={{ flex: 1 }}>
-					<View>
-						<HomeHeader icon={require("../assets/images/note_queue.png")} label='Playlists' />
-						<ScrollView horizontal={true} style={{ paddingBottom: 15 }}>
-							<View style={{ paddingHorizontal: 20, flexDirection: "row", gap: 10, alignItems: "center" }}>
-								<ButtonFolder width={210} color='#094813' />
-								<ButtonFolder width={210} variation={3} color='#318fff' />
-								<ButtonFolder width={210} variation={2} color='#ff7800' />
-								<View style={{ width: 10 }} />
-								<BaseButtonFolder
-									label=''
-									color=" rgb(24, 192, 52)"
-									iconSize={"70%"}
-									iconTop={0}
-									iconSource={require("../assets/images/new_queue.png")}
-									width={160}
-									iconOpacity={0.6}
-									onPress={() => setCreatingPlaylist(true)}
-								/>
-							</View>
-						</ScrollView>
-					</View>
-					<View>
-						<HomeHeader icon={require("../assets/images/note_1.png")} label='Recently played' />
-						<View style={{
-							paddingHorizontal: 20,
-							flexDirection: "row", flexWrap: "wrap", gap: 9, rowGap: 8
-						}}>
-							{recentlyPlayed && recentlyPlayed.map((file, index) => {
-
-								return <SongTile
-									key={index}
-									name={file.name}
+				<View style={{ paddingVertical: 64 }}>
+					<HomeHeader icon={require("../assets/images/note_queue.png")} label='Playlists' />
+					<ScrollView horizontal={true} style={{ paddingBottom: 15 }}>
+						<View style={{ paddingHorizontal: 20, flexDirection: "row", gap: 10, alignItems: "center" }}>
+							{playlists && playlists.length > 0 ? playlists.map((playlist, index) => {
+								return <ButtonFolder
+									key={playlist.id}
+									color={playlist.color}
+									variation={(index % 3) + 1}
+									label={playlist.name}
+									width={210}
 									onPress={() => {
-										if (file.id == undefined) return;
-										playSong(file.id)
-										getRecentlyPlayed()
+										setPage("playlist", playlist)
 									}}
 								/>
-							})}
+							}) : <View style={{ height: 210, backgroundColor: "black" }} />}
+							<View style={{ width: 10 }} />
+							<BaseButtonFolder
+								label=''
+								color=" rgb(24, 192, 52)"
+								iconSize={"70%"}
+								iconTop={0}
+								iconSource={require("../assets/images/new_queue.png")}
+								width={160}
+								iconOpacity={0.6}
+								onPress={() => setCreatingPlaylist(true)}
+							/>
 						</View>
-						<Pressable
-							onPress={() => {
-								setBackPressTarget("home")
-								setPage("songs")
-							}}
-							style={{
-								marginTop: 10, marginHorizontal: 20,
-								paddingVertical: 12, paddingHorizontal: 16,
-								flexDirection: 'row', alignItems: "center", gap: 15,
-								borderRadius: 16,
-								backgroundColor: secondary,
-							}}
-						>
-							<Image
-								style={{ width: 40, objectFit: "contain", aspectRatio: 1, tintColor: onSecondary }}
-								source={require("../assets/images/note_1.png")}
-							/>
-							<Text
-								style={{
-									fontSize: 30,
-									fontFamily: getComicNueueFont("bold"),
-									color: onSecondary
+					</ScrollView>
+				</View>
+				<View>
+					<HomeHeader icon={require("../assets/images/note_1.png")} label='Recently played' />
+					<View style={{
+						paddingHorizontal: 20,
+						flexDirection: "row", flexWrap: "wrap", gap: 9, rowGap: 8
+					}}>
+						{recentlyPlayed && recentlyPlayed.map((file, index) => {
+
+							return <SongTile
+								key={index}
+								name={file.name}
+								onPress={() => {
+									if (file.id == undefined) return;
+									viewSong(file.id)
+									getRecentlyPlayed()
 								}}
-								children="Song library >"
 							/>
-						</Pressable>
+						})}
 					</View>
-				</SafeAreaView>
+					<Pressable
+						onPress={() => {
+							setBackPressTarget("home")
+							setPage("songs")
+						}}
+						style={{
+							marginTop: 10, marginHorizontal: 20,
+							paddingVertical: 12, paddingHorizontal: 16,
+							flexDirection: 'row', alignItems: "center", gap: 15,
+							borderRadius: 16,
+							backgroundColor: secondary,
+						}}
+					>
+						<Image
+							style={{ width: 40, objectFit: "contain", aspectRatio: 1, tintColor: onSecondary }}
+							source={require("../assets/images/note_1.png")}
+						/>
+						<Text
+							style={{
+								fontSize: 30,
+								fontFamily: getComicNueueFont("bold"),
+								color: onSecondary
+							}}
+							children="Song library >"
+						/>
+					</Pressable>
+				</View>
 			</ScrollView>
-		</LinearGradient>
+		</LinearGradient >
 	)
 }
 

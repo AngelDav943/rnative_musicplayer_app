@@ -1,12 +1,6 @@
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import { AudioPro, AudioProContentType } from "react-native-audio-pro";
-import { exists, readDir, ReadDirItem } from "react-native-fs";
-import { databaseInit, getDatabase } from "../utilities/database";
-import { getNameAndExtension, hasStoragePerms } from "../utilities/basic";
-import { DB_song, song } from "../types/song";
-import { setting } from "../types/settings";
-import { ResultSet, SQLiteDatabase } from "react-native-sqlite-storage";
-import { scanSongFolder, scanSongDB } from "../utilities/songDatabase";
+import { SQLiteDatabase } from "react-native-sqlite-storage";
+import { getDatabase } from "../services/databaseService";
 
 const databaseContext = createContext<any>(null);
 

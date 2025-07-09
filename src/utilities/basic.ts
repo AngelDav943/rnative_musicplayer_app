@@ -54,8 +54,8 @@ export function getComicNueueFont(type: keyof typeof ComicNeueFonts, italic: boo
 	return `${ComicNeueFonts[type]}${italic ? "Italic" : ""}`
 }
 
-export function formatTime(milliseconds: number) {
-	const date = new Date(milliseconds)
+export function formatTime(milliseconds: number | string) {
+	const date = new Date(parseInt(String(milliseconds)))
 
 	const time = `${date.getMinutes().toString().padStart(2, "0")
 		}:${date.getSeconds().toString().padStart(2, "0")
