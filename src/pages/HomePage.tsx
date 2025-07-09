@@ -40,7 +40,7 @@ function HomePage() {
 		const db = await getDB();
 
 		const [{ rows: results }] = await db.executeSql(
-			"SELECT * FROM playlists ORDER BY created_at ASC"
+			"SELECT * FROM playlists ORDER BY updated_at DESC"
 		)
 		const playlists = results.raw() as playlist[]
 		setPlaylists(playlists)
