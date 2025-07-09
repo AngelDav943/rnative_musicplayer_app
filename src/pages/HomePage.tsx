@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, Text, View } from 'react-native'
+import { BackHandler, Image, Pressable, ScrollView, Text, View } from 'react-native'
 import LinearGradient from 'react-native-linear-gradient'
 import { useTheme } from '../contexts/useTheme'
 import { getComicNueueFont } from '../utilities/basic';
@@ -95,6 +95,21 @@ function HomePage() {
 
 	}, [])
 
+
+	useEffect(() => {
+		if (creatingPlaylist == true) {
+			const backEvent = BackHandler.addEventListener('hardwareBackPress', () => {
+				setCreatingPlaylist(false)
+				backEvent.remove()
+				return true
+			})
+
+			return () => {
+				backEvent.remove()
+			}
+		}
+	}, [creatingPlaylist])
+
 	return (
 		<LinearGradient
 			start={{ x: 0.0, y: 0.25 }}
@@ -123,6 +138,7 @@ function HomePage() {
 									width={210}
 									onPress={() => {
 										setPage("playlist", playlist)
+										setBackPressTarget("home")
 									}}
 								/>
 							}) : <View style={{ height: 210, backgroundColor: "black" }} />}
@@ -135,7 +151,10 @@ function HomePage() {
 								iconSource={require("../assets/images/new_queue.png")}
 								width={160}
 								iconOpacity={0.6}
-								onPress={() => setCreatingPlaylist(true)}
+								onPress={() => {
+									setCreatingPlaylist(true)
+									setBackPressTarget("home")
+								}}
 							/>
 						</View>
 					</ScrollView>

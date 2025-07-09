@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, Text, View } from 'react-native'
+import { BackHandler, Image, Pressable, ScrollView, Text, View } from 'react-native'
 import { song } from '../types/song';
 import { useDatabase } from '../contexts/useDatabase';
 import { usePlayer } from '../contexts/usePlayer';
 import { useTheme } from '../contexts/useTheme';
 import LinearGradient from 'react-native-linear-gradient';
 import SongTile from '../components/SongTile';
-import { getComicNueueFont } from '../utilities/basic';
+import { formatTime, getComicNueueFont } from '../utilities/basic';
 import { usePages } from '../App';
 import { playlist } from '../types/playlist';
 import { InsertQueue } from '../services/audioService';
@@ -31,6 +31,8 @@ function PlaylistsPage() {
 	const pageSize = 6
 
 	const [allSongs, setSongs] = useState<song[]>([])
+	const [totalDuration, setTotalDuration] = useState<number>(0);
+
 	async function getPlaylists() {
 		const db = await getDB();
 
@@ -40,6 +42,10 @@ function PlaylistsPage() {
 		)
 		const songs = results.raw() as song[]
 		setSongs(songs)
+
+		setTotalDuration(songs.reduce((total, item) => {
+			return total + (parseInt(String(item.duration)) || 0)
+		}, 0))
 	}
 
 	async function editPlaylist(data: { color: string; name: string; description: string; }) {
@@ -72,6 +78,20 @@ function PlaylistsPage() {
 	useEffect(() => {
 		getPlaylists()
 	}, [])
+
+	useEffect(() => {
+		if (editingPlaylist == true) {
+			const backEvent = BackHandler.addEventListener('hardwareBackPress', () => {
+				setEditingPlaylist(false)
+				backEvent.remove()
+				return true
+			})
+
+			return () => {
+				backEvent.remove()
+			}
+		}
+	}, [editingPlaylist])
 
 	return (
 		<View
@@ -123,7 +143,10 @@ function PlaylistsPage() {
 							marginBottom: 32,
 							padding: 8
 						}}>
-							<Text style={{ ...TextStyle, fontSize: 26, marginBottom: 8, opacity: 0.7 }} children={`${allSongs.length} song${allSongs.length != 1 ? "s" : ""}`} />
+							<View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+								<Text style={{ ...TextStyle, fontSize: 26, marginBottom: 8, opacity: 0.7 }} children={`${allSongs.length} song${allSongs.length != 1 ? "s" : ""}`} />
+								<Text style={{ ...TextStyle, fontSize: 26, marginBottom: 8, opacity: 0.7 }} children={formatTime(totalDuration)} />
+							</View>
 							<Text style={{ ...TextStyle, fontSize: 18 }} children={playlist.description} />
 						</View>
 

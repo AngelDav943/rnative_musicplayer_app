@@ -1,8 +1,6 @@
 import React, { Fragment, useEffect, useState } from 'react'
-import { Pressable, View, Image, Text, TextInput, ScrollView, FlatList } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+import { Pressable, View, Image, Text, TextInput, FlatList, BackHandler } from 'react-native';
 import { getComicNueueFont } from '../utilities/basic';
-import { usePages } from '../App';
 import { useDatabase } from '../contexts/useDatabase';
 import { usePlayer } from '../contexts/usePlayer';
 import { useTheme } from '../contexts/useTheme';
@@ -38,9 +36,20 @@ export default function SearchSongModal({ closingCallback, searchCallback }: Sea
 	}
 
 	useEffect(() => {
-		// select * from songs where name like '%foo%'
 		searchSongs()
 	}, [searchInput])
+
+	useEffect(() => {
+		const backEvent = BackHandler.addEventListener('hardwareBackPress', () => {
+			closingCallback()
+			backEvent.remove()
+			return true
+		})
+
+		return () => {
+			backEvent.remove()
+		}
+	}, [])
 
 	return <Fragment>
 		<Pressable

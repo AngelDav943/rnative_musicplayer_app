@@ -81,7 +81,7 @@ function SongsPage() {
 								onPress={() => file.id && viewSong(file.id)}
 								variant={(file.id + (songPage % 3)) % 2}
 								name={file.name}
-								maxNameLength={40}
+								maxNameLength={37}
 							/>
 						)
 					})}

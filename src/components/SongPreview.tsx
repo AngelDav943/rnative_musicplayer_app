@@ -1,5 +1,5 @@
 import React, { Fragment, useEffect, useState } from 'react'
-import { ColorValue, Image, ImageSourcePropType, Pressable, PressableStateCallbackType, ScrollView, StyleProp, Text, TextStyle, View, ViewStyle } from 'react-native'
+import { BackHandler, ColorValue, Image, ImageSourcePropType, Pressable, PressableStateCallbackType, ScrollView, StyleProp, Text, TextStyle, View, ViewStyle } from 'react-native'
 import { song } from '../types/song'
 import { useTheme } from '../contexts/useTheme'
 import LinearGradient from 'react-native-linear-gradient'
@@ -120,6 +120,22 @@ export default function SongPreview({ song, closingCallback }: SongPreviewProps)
 	useEffect(() => {
 		getPlaylists()
 	}, [])
+
+	useEffect(() => {
+		const backEvent = BackHandler.addEventListener('hardwareBackPress', () => {
+			if (currentPage == "home") {
+				closingCallback()
+			} else {
+				setCurrentPage("home")
+			}
+			backEvent.remove()
+			return true
+		})
+
+		return () => {
+			backEvent.remove()
+		}
+	}, [currentPage])
 
 	return <Fragment>
 		<Pressable

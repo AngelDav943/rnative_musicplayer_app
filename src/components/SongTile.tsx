@@ -2,11 +2,12 @@ import React from 'react'
 import { Pressable, Image, Text, GestureResponderEvent, View, ColorValue } from 'react-native'
 import { useTheme } from '../contexts/useTheme';
 import LinearGradient from 'react-native-linear-gradient';
+import { getComicNueueFont } from '../utilities/basic';
 
 function SongTile({
 	name,
 	onPress,
-	maxNameLength = 12,
+	maxNameLength = 11,
 	variant = -1, //Math.round(Math.random() * 1)
 	background: bgColor
 }: {
@@ -64,7 +65,12 @@ function SongTile({
 					source={require("../assets/images/note_2.png")}
 				/>
 				<Text
-					style={{ color: "white", fontWeight: "bold", flexWrap: 'wrap' }}
+					style={{
+						color: "white",
+						fontSize: 17,
+						fontFamily: getComicNueueFont("bold"), // fontWeight: "bold",
+						flexWrap: 'wrap'
+					}}
 					children={`${String(name).slice(0, maxNameLength).trim()}${String(name).length > maxNameLength ? "..." : ""}`}
 				/>
 			</View>
