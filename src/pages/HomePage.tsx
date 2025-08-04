@@ -205,6 +205,32 @@ function HomePage() {
 						/>
 					</Pressable>
 				</View>
+				<Pressable
+					onPress={() => {
+						setBackPressTarget("home")
+						setPage("connect")
+					}}
+					style={{
+						marginTop: 32, marginHorizontal: 20,
+						paddingVertical: 12, paddingHorizontal: 16,
+						flexDirection: 'row', alignItems: "center", gap: 15,
+						borderRadius: 16,
+						backgroundColor: secondary,
+					}}
+				>
+					<Image
+						style={{ width: 40, objectFit: "contain", aspectRatio: 1, tintColor: onSecondary }}
+						source={require("../assets/images/add.png")}
+					/>
+					<Text
+						style={{
+							fontSize: 30,
+							fontFamily: getComicNueueFont("bold"),
+							color: onSecondary
+						}}
+						children="Connect webplayer"
+					/>
+				</Pressable>
 			</ScrollView>
 		</LinearGradient >
 	)

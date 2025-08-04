@@ -73,3 +73,11 @@ export async function getSongDuration(path: string) {
 	}
 	return 0
 }
+
+export function parseJSON(input: string): Record<string, any> | null {
+	try {
+		return JSON.parse(input)
+	} catch (error) {
+		return null
+	}
+}

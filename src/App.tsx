@@ -17,6 +17,7 @@ import PlaylistsPage from './pages/PlaylistsPage';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DatabaseProvider } from './contexts/useDatabase';
 import { PortalProvider } from './contexts/PortalProvider';
+import ConnectPage from './pages/ConnectPage';
 
 const pagesContext = createContext<any>(null);
 
@@ -24,7 +25,8 @@ const pages = {
   "home": <HomePage />,
   "categories": <CategoriesPage />,
   "songs": <SongsPage />,
-  "playlist": <PlaylistsPage />
+  "playlist": <PlaylistsPage />,
+  "connect": <ConnectPage />
 } as const
 
 interface pagesProviderUtils {
