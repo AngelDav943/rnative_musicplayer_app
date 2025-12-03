@@ -2,6 +2,7 @@ import { AudioPro, AudioProContentType, AudioProEvent, AudioProEventType, AudioP
 import EventEmitter, { EmitterSubscription } from "react-native/Libraries/vendor/emitter/EventEmitter";
 import { song } from "../types/song";
 import { getDatabase } from "./databaseService";
+import { sendSong } from "./rtcService";
 
 export type PlayerLoopMode = "none" | "loop" | "queue" | "shuffle"
 export enum PlayerEventType {
@@ -93,6 +94,7 @@ export function setupListeners() {
 
 			if (nextSong !== null) {
 				AudioPlay(nextSong)
+
 
 				if (nextSongType == PlayerEventType.MOVED_QUEUE) {
 					playerEmit(PlayerEventType.MOVED_QUEUE, {
@@ -209,4 +211,5 @@ export async function AudioPlay(song: song) {
 	const result = await database.executeSql("INSERT INTO recent_songs (song_id) VALUES (?)", [song.id])
 
 	playerEmit(PlayerEventType.ADDED, song)
+	await sendSong(song) // sends song through webrtc's data channel to connected client
 }

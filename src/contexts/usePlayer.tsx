@@ -70,7 +70,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 				const [{ rows: last_record }] = await database.executeSql("SELECT * FROM settings WHERE key == \"songs.lastchecked\"")
 				const LastChecked = last_record.item(0) as setting
 
-				if (LastChecked == undefined || Date.now() - new Date(LastChecked.value).getTime() > 86400000 * 2) {
+				if (LastChecked == undefined || Date.now() - new Date(LastChecked.value).getTime() > 86400000 / 2) {
 					scanSongDB(database)
 				}
 

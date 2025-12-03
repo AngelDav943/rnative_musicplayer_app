@@ -1,4 +1,5 @@
 import { PermissionsAndroid, Platform } from "react-native";
+import { hash } from "react-native-fs";
 import AudioMetadata from "../types/NativeModules";
 
 export function getNameAndExtension(fileName: string) {
@@ -80,4 +81,8 @@ export function parseJSON(input: string): Record<string, any> | null {
 	} catch (error) {
 		return null
 	}
+}
+
+export async function hashFile(filePath:string) {
+	return await hash(filePath, "sha256")
 }

@@ -1,7 +1,10 @@
+import { readFile } from "react-native-fs";
+import { lookup } from "react-native-mime-types";
 import { RTCPeerConnection } from "react-native-webrtc";
 import RTCDataChannel from "react-native-webrtc/lib/typescript/RTCDataChannel";
 import EventEmitter from "react-native/Libraries/vendor/emitter/EventEmitter";
-import { parseJSON } from "../utilities/basic";
+import { song } from "../types/song";
+import { hashFile, parseJSON } from "../utilities/basic";
 
 const socketURL = "wss://api.andec.org/websockets/music"
 
@@ -12,7 +15,9 @@ const configurationPeerConnection = {
 
 let peerConnection: RTCPeerConnection | null = new RTCPeerConnection(configurationPeerConnection)
 let websocket: WebSocket | null = null
-let dataChannel: RTCDataChannel | null = null
+let fileDataChannel: RTCDataChannel | null = null
+
+let sendingFile = false
 
 export type peerConnectionState = "closed" | "connecting" | "connected" | "disconnected" | "failed" | "new"
 let peerStatus: peerConnectionState = "closed";
@@ -23,8 +28,64 @@ export function getPeerStatus() {
 	return peerStatus
 }
 
-export function sendFile(file: any){
+export async function sendSong(song: song) {
+	if (!fileDataChannel || sendingFile) return
 	// TODO: send file through the data channel by chunks
+
+	const base64 = await readFile(song.path, 'base64');
+	const binaryString = atob(base64)
+	const binaryLength = binaryString.length
+	const bytes = new Uint8Array(binaryLength);
+	for (let i = 0; i < binaryLength; i++) {
+		bytes[i] = binaryString.charCodeAt(i);
+	}
+
+	const mimeType = lookup(song.path)
+	const file = new Blob([binaryString], { type: mimeType != false ? mimeType : "application/unknown", lastModified: 0 })
+
+	console.log("file size", file.size, ". bytes length", bytes.length)
+
+	const chunkSize = 32 * 1024; // 32KB per data chunk
+
+	sendingFile = true
+
+	const fileHash = await hashFile(song.path);
+
+	console.log("sending _start_of_file_")
+
+	fileDataChannel.send(`__START__OF__FILE__${JSON.stringify({
+		type: file.type,
+		total: file.size,
+		hash: fileHash
+	})}`)
+	// readSlice(0)
+
+	const fileBuffer = bytes.buffer
+	function processChunk(part: number) {
+		if (!sendingFile) {
+			console.log("file transfer cancelled.")
+			return;
+		}
+
+		if (part >= fileBuffer.byteLength) {
+			console.log("end of file.")
+			if (fileDataChannel) fileDataChannel.send(`__END__OF__FILE__${JSON.stringify({
+				type: file.type
+			})}`)
+			sendingFile = false
+			return;
+		}
+
+		if (fileDataChannel) {
+			const chunk = fileBuffer.slice(part, part + chunkSize)
+			console.log("sending chunk.", chunk)
+			fileDataChannel.send(chunk)
+
+			setTimeout(() => processChunk(part + chunkSize), 0)
+		}
+	}
+
+	processChunk(0)
 }
 
 async function handleWebsocket(data: any) {
@@ -88,8 +149,8 @@ async function startWebRTC() {
 		// setConnectionStatus(peerConnection.connectionState)
 	}
 
-	dataChannel = peerConnection.createDataChannel("metadataChnl")
-	await handleDataChannelEvents(dataChannel, true)
+	fileDataChannel = peerConnection.createDataChannel("filetransfer")
+	await handleDataChannelEvents(fileDataChannel, true)
 
 	const offer = await peerConnection.createOffer();
 	await peerConnection.setLocalDescription(offer)
@@ -143,7 +204,7 @@ function handleDataChannelEvents(channel: RTCDataChannel, arg1: boolean) {
 		console.log("Data channel message received (caller):", event.data);
 
 		if (String(event.data).includes("__CANCEL_TRANSFER_CACHE_EXISING__")) {
-			// sendingFile.current = false
+			sendingFile = false
 		}
 
 	};
@@ -202,16 +263,15 @@ async function ensurePeerConnection() {
 
 	//@ts-ignore
 	peerConnection.ondatachannel = async (event) => {
-		dataChannel = event.channel
+		fileDataChannel = event.channel
 		await handleDataChannelEvents(event.channel, false)
 	}
 
 	//@ts-ignore
 	peerConnection.onconnectionstatechange = () => {
 		if (peerConnection == null) return
-		console.log("connection state:", peerConnection.connectionState)
+		console.log("ensurePeerConnection() connection state:", peerConnection.connectionState)
 		peerStatus = peerConnection.connectionState
 		rtcEmitter.emit("connectionState", peerConnection.connectionState)
-		// setConnectionStatus(peerConnection.connectionState)
 	}
 }

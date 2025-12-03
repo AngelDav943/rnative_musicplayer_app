@@ -36,7 +36,7 @@ export async function scanSongFolder(db: SQLiteDatabase) {
 
 		promises.push(new Promise(async (resolve) => {
 			const duration = await getSongDuration(item.path)
-			const dbItem = await db.executeSql("INSERT INTO songs (path, name, duration) VALUES (?, ?, ?)", [item.path, name, duration])
+			const dbItem = await db.executeSql("INSERT OR IGNORE INTO songs (path, name, duration) VALUES (?, ?, ?)", [item.path, name, duration])
 
 			resolve({
 				id: dbItem[0].insertId,
@@ -49,6 +49,10 @@ export async function scanSongFolder(db: SQLiteDatabase) {
 
 	const results = await Promise.allSettled(promises)
 	const songs = results.filter(item => item.status == "fulfilled").map(item => item.value)
+
+	await db.executeSql("UPDATE settings SET value = ? WHERE key == \"songs.lastchecked\"", [
+		new Date().toISOString()
+	])
 
 	// console.log("results", dbResults)
 	console.log("songs res", songs)
@@ -70,7 +74,11 @@ export async function scanSongDB(db: SQLiteDatabase) {
 	})
 
 	const deletes = await Promise.all(deletePromises);
-	//const filesRescan = await scanSongFolder();
+	const filesRescan = await scanSongFolder(db);
 
-	return []
+	await db.executeSql("UPDATE settings SET value = ? WHERE key == \"songs.lastchecked\"", [
+		new Date().toISOString()
+	])
+
+	return filesRescan
 }

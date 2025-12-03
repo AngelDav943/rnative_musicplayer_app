@@ -19,13 +19,17 @@
     ]
   },
   "dependencies": {
+    "@craftzdog/react-native-buffer": "^6.1.0",
     "music-metadata": "^11.6.0",
     "react": "19.1.0",
     "react-native": "0.80.1",
     "react-native-audio-pro": "^9.9.1",
+    "react-native-blob-util": "^0.22.2",
     "react-native-fs": "^2.20.0",
     "react-native-linear-gradient": "^2.8.3",
+    "react-native-mime-types": "^2.5.0",
     "react-native-safe-area-context": "^5.5.1",
+    "react-native-sha256": "^1.4.10",
     "react-native-sqlite-storage": "^6.0.1",
     "react-native-use-websocket": "^0.2.6",
     "react-native-webrtc": "^124.0.6"
