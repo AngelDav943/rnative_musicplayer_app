@@ -32,10 +32,10 @@ function SongsPage() {
 				searchCallback={() => { }}
 			/>} />}
 			<ScrollView style={{ paddingHorizontal: 16, flex: 1 }}>
-				<View style={{ paddingTop: 64, paddingBottom: 128, gap: 8, flex: 1 }}>
+				<View style={{ paddingTop: 64, paddingBottom: 128, marginBottom: 52, gap: 8, flex: 1 }}>
 					<View
 						style={{
-							marginBottom: 32,
+							marginBottom: 16,
 							flexDirection: 'row', alignItems: "center", gap: 15,
 							justifyContent: "space-between",
 							paddingRight: 16
@@ -92,7 +92,7 @@ function SongsPage() {
 				style={{
 					position: "absolute", bottom: 0, width: "100%",
 					flexDirection: "row", justifyContent: "space-evenly", alignItems: "center",
-					gap: 16, paddingVertical: 16
+					gap: 16, paddingVertical: 52
 				}}
 			>
 				<Pressable

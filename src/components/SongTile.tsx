@@ -25,8 +25,8 @@ function SongTile({
 			style={{
 				position: "relative",
 				flexGrow: 1,
-				minWidth: 200,
-				flexBasis: 200,
+				minWidth: 150,
+				flexBasis: 150,
 				backgroundColor: bgColor ? bgColor : secondary,
 				height: 64,
 				borderRadius: 16, overflow: "hidden",

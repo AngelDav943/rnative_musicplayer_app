@@ -1,3 +1,4 @@
+import { DownloadDirectoryPath, writeFile } from 'react-native-fs';
 import SQLite, { SQLiteDatabase } from 'react-native-sqlite-storage';
 
 SQLite.enablePromise(true);
@@ -89,4 +90,116 @@ CREATE TABLE IF NOT EXISTS recent_songs (
 	])
 	console.log("db init result:", results)
 	return true
+}
+
+async function getTableData(db: SQLiteDatabase, table: string) {
+	const [result] = await db.executeSql(`SELECT * FROM ${table}`);
+
+	const rows = [];
+
+	for (let i = 0; i < result.rows.length; i++) {
+		rows.push(result.rows.item(i));
+	}
+
+	return rows;
+}
+
+export async function exportDatabase() {
+	const db = await getDatabase();
+
+	const tables = [
+		"songs",
+		"playlists",
+		"playlist_song",
+		"settings",
+		"tags",
+		"song_tag",
+		"recent_songs",
+	];
+
+	const data: Record<string, any[]> = {};
+
+	for (const table of tables) {
+		data[table] = await getTableData(db, table);
+	}
+
+	return {
+		version: 1,
+		exportedAt: new Date().toISOString(),
+		tables: data,
+	};
+}
+
+export async function importDatabase(data: any) {
+	const db = await getDatabase();
+
+	await db.transaction(async tx => {
+		try {
+
+			// Disable FK checks while importing
+			tx.executeSql("PRAGMA foreign_keys = OFF");
+
+			tx.executeSql("DELETE FROM recent_songs");
+			tx.executeSql("DELETE FROM song_tag");
+			tx.executeSql("DELETE FROM playlist_song");
+			tx.executeSql("DELETE FROM tags");
+			tx.executeSql("DELETE FROM playlists");
+			tx.executeSql("DELETE FROM songs");
+			tx.executeSql("DELETE FROM settings");
+
+			const tables = [
+				"songs",
+				"playlists",
+				"playlist_song",
+				"settings",
+				"tags",
+				"song_tag",
+				"recent_songs",
+			];
+
+			console.log("hello")
+
+			for (const table of tables) {
+				// console.log("table:", table, data.tables[table])
+				const rows = data.tables[table] ?? []
+
+				for (const row of rows) {
+					const columns = Object.keys(row);
+
+					const placeholders = columns.map(() => "?").join(",");
+
+					const values = columns.map(c => row[c]);
+
+					await db.executeSql(
+						`INSERT INTO ${table} (${columns.join(",")}) VALUES (${placeholders})`,
+						values
+					);
+				}
+			}
+
+			await tx.executeSql("PRAGMA foreign_keys = ON");
+		} catch (err) {
+			console.error("importDb erro:", err)
+		}
+
+	})
+}
+
+export async function exportDatabaseToJson() {
+	try {
+		const backup = await exportDatabase();
+
+		const json = JSON.stringify(backup, null, 2);
+
+		const path = `${DownloadDirectoryPath}/music-backup.json`;
+
+		await writeFile(path, json, "utf8");
+
+		console.log(`Backup saved to ${path}`);
+
+		return path;
+	} catch (err) {
+		console.error("Failed to export database:", err);
+		throw err;
+	}
 }

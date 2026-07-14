@@ -8,7 +8,7 @@ export async function readFolder() {
 	const dir = await readDir("/storage/emulated/0/Music")
 	const allowedExts = ["mp3", "aac", "m4a", "wav"]
 	dir.forEach(item => {
-		const [name, ext] = getNameAndExtension(item.name)
+		const [_, ext] = getNameAndExtension(item.name)
 		if (
 			item.isFile() &&
 			item.path.includes(".trashed") == false &&
@@ -25,7 +25,7 @@ export async function scanSongFolder(db: SQLiteDatabase) {
 	// const durationPromises: Promise<number>[] = []
 	const promises: Promise<song>[] = []
 	dir.forEach(item => {
-		const [name, ext] = getNameAndExtension(item.name
+		const [name, _ext] = getNameAndExtension(item.name
 			.replace("_", " ")
 			.replace(/([a-z0-9])([A-Z])/g, (_, a, b) => `${a} ${b}`))
 

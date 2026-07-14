@@ -1,4 +1,4 @@
-import { readFile } from "react-native-fs";
+import { read, stat } from "react-native-fs";
 import { lookup } from "react-native-mime-types";
 import { RTCPeerConnection } from "react-native-webrtc";
 import RTCDataChannel from "react-native-webrtc/lib/typescript/RTCDataChannel";
@@ -28,64 +28,92 @@ export function getPeerStatus() {
 	return peerStatus
 }
 
+const CHUNK_SIZE = 32 * 1024 // KB
+const BUFFERED_AMOUNT_LOW_THRESHOLD = CHUNK_SIZE * 4;
+const BUFFERED_AMOUNT_HIGH_WATERMARK = CHUNK_SIZE * 16;
+
+function waitForDrain(channel: RTCDataChannel): Promise<void> {
+	return new Promise((resolve) => {
+		if (channel.bufferedAmount <= BUFFERED_AMOUNT_LOW_THRESHOLD) {
+			resolve()
+			return
+		}
+		const onLow = () => {
+			//@ts-ignore
+			channel.removeEventListener("bufferedamountlow", onLow)
+			resolve()
+		}
+		//@ts-ignore
+		channel.addEventListener("bufferedamountlow", onLow)
+	})
+}
+
 export async function sendSong(song: song) {
 	if (!fileDataChannel || sendingFile) return
-	// TODO: send file through the data channel by chunks
-
-	const base64 = await readFile(song.path, 'base64');
-	const binaryString = atob(base64)
-	const binaryLength = binaryString.length
-	const bytes = new Uint8Array(binaryLength);
-	for (let i = 0; i < binaryLength; i++) {
-		bytes[i] = binaryString.charCodeAt(i);
-	}
-
-	const mimeType = lookup(song.path)
-	const file = new Blob([binaryString], { type: mimeType != false ? mimeType : "application/unknown", lastModified: 0 })
-
-	console.log("file size", file.size, ". bytes length", bytes.length)
-
-	const chunkSize = 32 * 1024; // 32KB per data chunk
-
 	sendingFile = true
 
+	const mimeType = lookup(song.path)
+	const resolvedType = mimeType !== false ? mimeType : "application/unknown"
+
+	const fileStats = await stat(song.path)
+	const totalSize = fileStats.size
 	const fileHash = await hashFile(song.path);
+
+	fileDataChannel.bufferedAmountLowThreshold = BUFFERED_AMOUNT_LOW_THRESHOLD
 
 	console.log("sending _start_of_file_")
 
 	fileDataChannel.send(`__START__OF__FILE__${JSON.stringify({
-		type: file.type,
-		total: file.size,
+		type: resolvedType,
+		// oldtotal: bytes.byteLength,
+		total: totalSize,
+		compressed: false,
 		hash: fileHash
 	})}`)
-	// readSlice(0)
 
-	const fileBuffer = bytes.buffer
-	function processChunk(part: number) {
-		if (!sendingFile) {
+	let position = 0
+
+	async function sendNextChunk() {
+		if (!sendingFile || !fileDataChannel) {
 			console.log("file transfer cancelled.")
-			return;
+			return
 		}
 
-		if (part >= fileBuffer.byteLength) {
+		if (position >= totalSize) {
 			console.log("end of file.")
-			if (fileDataChannel) fileDataChannel.send(`__END__OF__FILE__${JSON.stringify({
-				type: file.type
+			fileDataChannel.send(`__END__OF__FILE__${JSON.stringify({
+				type: resolvedType
 			})}`)
 			sendingFile = false
-			return;
+			return
 		}
 
-		if (fileDataChannel) {
-			const chunk = fileBuffer.slice(part, part + chunkSize)
-			console.log("sending chunk.", chunk)
-			fileDataChannel.send(chunk)
+		const length = Math.min(CHUNK_SIZE, totalSize - position)
 
-			setTimeout(() => processChunk(part + chunkSize), 0)
+		// Read just this chunk off disk instead of the whole file up front.
+		const base64Chunk = await read(song.path, length, position, "base64")
+		const binaryString = atob(base64Chunk)
+		const bytes = new Uint8Array(binaryString.length)
+		for (let i = 0; i < binaryString.length; i++) {
+			bytes[i] = binaryString.charCodeAt(i)
 		}
+
+		// Backpressure: if the channel's outgoing buffer is already full,
+		// wait for it to drain instead of piling more data on top of it.
+		if (fileDataChannel.bufferedAmount > BUFFERED_AMOUNT_HIGH_WATERMARK) {
+			await waitForDrain(fileDataChannel)
+		}
+
+		if (!fileDataChannel) return
+		fileDataChannel.send(bytes.buffer)
+		position += length
+
+		// Yield back to the event loop between chunks so the read/send
+		// pipeline doesn't starve everything else (and can be cancelled).
+		setTimeout(sendNextChunk, 0)
 	}
 
-	processChunk(0)
+	sendNextChunk()
 }
 
 async function handleWebsocket(data: any) {

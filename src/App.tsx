@@ -7,17 +7,16 @@
 
 import { BackHandler, StatusBar, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import { PlayerProvider } from './contexts/usePlayer';
-import LinearGradient from 'react-native-linear-gradient';
 import { ThemeProvider, useTheme } from './contexts/useTheme';
 import { createContext, useContext, useEffect, useState } from 'react';
 import HomePage from './pages/HomePage';
 import CategoriesPage from './pages/CategoriesPage';
 import SongsPage from './pages/SongsPage';
 import PlaylistsPage from './pages/PlaylistsPage';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DatabaseProvider } from './contexts/useDatabase';
 import { PortalProvider } from './contexts/PortalProvider';
 import ConnectPage from './pages/ConnectPage';
+import Settings from './pages/Settings';
 
 const pagesContext = createContext<any>(null);
 
@@ -26,7 +25,8 @@ const pages = {
   "categories": <CategoriesPage />,
   "songs": <SongsPage />,
   "playlist": <PlaylistsPage />,
-  "connect": <ConnectPage />
+  "connect": <ConnectPage />,
+  "settings": <Settings />
 } as const
 
 interface pagesProviderUtils {

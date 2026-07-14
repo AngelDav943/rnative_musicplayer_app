@@ -7,8 +7,8 @@ import { getComicNueueFont } from '../utilities/basic';
 import { getPeerStatus, peerConnectionState, rtcEmitter, startCall } from '../services/rtcService';
 
 function ConnectPage() {
-	const { background, onBackground, inversePrimary, surface } = useTheme();
-	const { setPage, setBackPressTarget, state } = usePages();
+	const { background, onBackground, surface } = useTheme();
+	const { setPage, setBackPressTarget } = usePages();
 
 	const [targetPIN, setTargetPIN] = useState<string>("");
 
